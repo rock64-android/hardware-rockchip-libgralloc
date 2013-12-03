@@ -70,7 +70,7 @@ struct fb_dmabuf_export
 #define NUM_FB_BUFFERS 3
 
 #if GRALLOC_ARM_UMP_MODULE
-#include <ump/ump.h>
+#include "ump/include/ump/ump.h"
 #endif
 
 typedef enum
