@@ -1,7 +1,7 @@
 /*
  * This confidential and proprietary software may be used only as
  * authorised by a licensing agreement from ARM Limited
- * (C) COPYRIGHT 2008-2011 ARM Limited
+ * (C) COPYRIGHT 2008-2011, 2013 ARM Limited
  * ALL RIGHTS RESERVED
  * The entire notice above must be reproduced on all authorised
  * copies and copies may only be made to the extent permitted
@@ -38,17 +38,17 @@
 
 #if defined(__GNUC__)
 #if __GNUC__ >= 4
-#	define MALI_VISIBLE  __attribute__ ((visibility ("default")))		/**< Function should be visible from outside the dll */	
+#   define MALI_VISIBLE  __attribute__ ((visibility ("default")))       /**< Function should be visible from outside the dll */
 #else
-#	define MALI_VISIBLE
+#   define MALI_VISIBLE
 #endif
 
 #elif defined(__ARMCC_VERSION)
 /* ARMCC specific */
-#	define MALI_VISIBLE  __declspec(dllexport)
+#   define MALI_VISIBLE  __declspec(dllexport)
 
 #else
-#	define MALI_VISIBLE
+#   define MALI_VISIBLE
 
 #endif
 

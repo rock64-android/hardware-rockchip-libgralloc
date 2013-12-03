@@ -1,7 +1,7 @@
 /*
  * This confidential and proprietary software may be used only as
  * authorised by a licensing agreement from ARM Limited
- * (C) COPYRIGHT 2005-2011 ARM Limited
+ * (C) COPYRIGHT 2005-2011, 2013 ARM Limited
  * ALL RIGHTS RESERVED
  * The entire notice above must be reproduced on all authorised
  * copies and copies may only be made to the extent permitted
@@ -41,51 +41,51 @@
 
 /* START: Configuration */
 #ifndef UMP_PRINTF
-	#define UMP_PRINTF printf
+#define UMP_PRINTF printf
 #endif /* UMP_PRINTF */
 
 #ifndef UMP_PRINT_FLUSH
-	#define UMP_PRINT_FLUSH do {} while (0)
+#define UMP_PRINT_FLUSH do {} while (0)
 #endif /* UMP_PRINT_FLUSH */
 
 #ifndef UMP_DEBUG_LEVEL
-    #define UMP_DEBUG_LEVEL 1
+#define UMP_DEBUG_LEVEL 1
 #endif /* UMP_DEBUG_LEVEL */
 
 #ifndef UMP_DEBUG_ERROR_START_MSG
-    #define UMP_DEBUG_ERROR_START_MSG do {\
-    UMP_PRINTF("*********************************************************************\n");\
-    UMP_PRINT_FLUSH; } while (0)
+#define UMP_DEBUG_ERROR_START_MSG do {\
+		UMP_PRINTF("*********************************************************************\n");\
+		UMP_PRINT_FLUSH; } while (0)
 #endif /* UMP_DEBUG_ERROR_START_MSG */
 
 #ifndef UMP_DEBUG_ERROR_STOP_MSG
-    #define UMP_DEBUG_ERROR_STOP_MSG  do { UMP_PRINTF("\n"); UMP_PRINT_FLUSH; } while (0)
+#define UMP_DEBUG_ERROR_STOP_MSG  do { UMP_PRINTF("\n"); UMP_PRINT_FLUSH; } while (0)
 #endif /* UMP_DEBUG_ERROR_STOP_MSG */
 
 #ifndef UMP_ASSERT_QUIT_CMD
-	#define UMP_ASSERT_QUIT_CMD    abort()
+#define UMP_ASSERT_QUIT_CMD    abort()
 #endif /* UMP_ASSERT_QUIT_CMD */
 /* STOP: Configuration */
 
 /**
- *	The macro UMP_FUNCTION evaluates to the name of the function enclosing
- *	this macro's usage, or "<unknown>" if not supported.
+ *  The macro UMP_FUNCTION evaluates to the name of the function enclosing
+ *  this macro's usage, or "<unknown>" if not supported.
  */
 #if (defined(__SYMBIAN32__) && defined(__ARMCC__)) || defined(_MSC_VER)
-#	define UMP_FUNCTION __FUNCTION__
+#   define UMP_FUNCTION __FUNCTION__
 #elif __STDC__  && __STDC_VERSION__ >= 199901L
-#	define UMP_FUNCTION __FUNCTION__
+#   define UMP_FUNCTION __FUNCTION__
 #elif defined(__GNUC__) && __GNUC__ >= 2
-#	define UMP_FUNCTION __FUNCTION__
+#   define UMP_FUNCTION __FUNCTION__
 #elif defined(__func__)
-#	define UMP_FUNCTION __func__
+#   define UMP_FUNCTION __func__
 #else
-#	define UMP_FUNCTION "<unknown>"
+#   define UMP_FUNCTION "<unknown>"
 #endif
 
 /**
- *	Explicitly ignore a parameter passed into a function, to suppress compiler warnings.
- *	Should only be used with parameter names.
+ *  Explicitly ignore a parameter passed into a function, to suppress compiler warnings.
+ *  Should only be used with parameter names.
  */
 #define UMP_IGNORE(x) (void)x
 
@@ -96,14 +96,14 @@
  */
 
 #ifndef UMP_DEBUG_SKIP_TRACE
-    #ifndef UMP_DEBUG_SKIP_PRINT_FUNCTION_NAME
-        #define UMP_DEBUG_TRACE()  do { UMP_PRINTF( "In file: "__FILE__ \
-                        "  function: %s()   line:%4d\n" , UMP_FUNCTION, __LINE__);  UMP_PRINT_FLUSH; } while (0)
-	#else
-        #define UMP_DEBUG_TRACE()  do { UMP_PRINTF( "In file: "__FILE__ "  line:%4d\n" , __LINE__);  UMP_PRINT_FLUSH; } while (0)
-	#endif /* UMP_DEBUG_SKIP_PRINT_FUNCTION_NAME */
+#ifndef UMP_DEBUG_SKIP_PRINT_FUNCTION_NAME
+#define UMP_DEBUG_TRACE()  do { UMP_PRINTF( "In file: "__FILE__ \
+	        "  function: %s()   line:%4d\n" , UMP_FUNCTION, __LINE__);  UMP_PRINT_FLUSH; } while (0)
 #else
-    #define UMP_DEBUG_TRACE()
+#define UMP_DEBUG_TRACE()  do { UMP_PRINTF( "In file: "__FILE__ "  line:%4d\n" , __LINE__);  UMP_PRINT_FLUSH; } while (0)
+#endif /* UMP_DEBUG_SKIP_PRINT_FUNCTION_NAME */
+#else
+#define UMP_DEBUG_TRACE()
 #endif /* UMP_DEBUG_SKIP_TRACE */
 
 /**
@@ -114,9 +114,9 @@
  * @param   X  A parantese with the contents to be sent to UMP_PRINTF
  */
 #ifndef UMP_DEBUG_SKIP_PRINT
-    #define UMP_DEBUG_PRINT(nr, X )  do { if ( nr<=UMP_DEBUG_LEVEL ) { UMP_PRINTF X ; UMP_PRINT_FLUSH; } } while (0)
+#define UMP_DEBUG_PRINT(nr, X )  do { if ( nr<=UMP_DEBUG_LEVEL ) { UMP_PRINTF X ; UMP_PRINT_FLUSH; } } while (0)
 #else
-    #define UMP_DEBUG_PRINT(nr, X )
+#define UMP_DEBUG_PRINT(nr, X )
 #endif /* UMP_DEBUG_SKIP_PRINT */
 
 /**
@@ -130,23 +130,23 @@
 
 /* helper to handle if the function name should be included or not */
 #ifndef UMP_DEBUG_TPRINT_SKIP_FUNCTION
-    #define UMP_DEBUG_TPRINT_INTERN do {UMP_PRINTF( ""__FILE__" %s()%4d " , UMP_FUNCTION, __LINE__); UMP_PRINT_FLUSH; }  while (0)
+#define UMP_DEBUG_TPRINT_INTERN do {UMP_PRINTF( ""__FILE__" %s()%4d " , UMP_FUNCTION, __LINE__); UMP_PRINT_FLUSH; }  while (0)
 #else
-    #define UMP_DEBUG_TPRINT_INTERN do {UMP_PRINTF( ""__FILE__ "%4d " , __LINE__); UMP_PRINT_FLUSH; }  while (0)
+#define UMP_DEBUG_TPRINT_INTERN do {UMP_PRINTF( ""__FILE__ "%4d " , __LINE__); UMP_PRINT_FLUSH; }  while (0)
 #endif /* UMP_DEBUG_TPRINT_SKIP_FUNCTION */
 
 #ifndef UMP_DEBUG_SKIP_TPRINT
-	#define UMP_DEBUG_TPRINT(nr, X ) \
-    do{\
-        if ( nr<=UMP_DEBUG_LEVEL )\
-        {\
-            UMP_DEBUG_TPRINT_INTERN;\
-            UMP_PRINTF X ;\
-            UMP_PRINT_FLUSH;\
-        }\
-    } while (0)
+#define UMP_DEBUG_TPRINT(nr, X ) \
+	do{\
+		if ( nr<=UMP_DEBUG_LEVEL )\
+		{\
+			UMP_DEBUG_TPRINT_INTERN;\
+			UMP_PRINTF X ;\
+			UMP_PRINT_FLUSH;\
+		}\
+	} while (0)
 #else
-    #define UMP_DEBUG_TPRINT(nr, X )
+#define UMP_DEBUG_TPRINT(nr, X )
 #endif /* UMP_DEBUG_SKIP_TPRINT */
 
 /**
@@ -165,18 +165,18 @@
  */
 
 #ifndef UMP_DEBUG_SKIP_ERROR
-    #define UMP_DEBUG_ERROR( X )  \
-        do{ \
-            UMP_DEBUG_ERROR_START_MSG;\
-            UMP_PRINTF("ERROR: ");\
-            UMP_PRINT_FLUSH;\
-            UMP_DEBUG_TRACE(); \
-            UMP_PRINTF X ; \
-            UMP_PRINT_FLUSH;\
-            UMP_DEBUG_ERROR_STOP_MSG;\
-        } while (0)
+#define UMP_DEBUG_ERROR( X )  \
+	do{ \
+		UMP_DEBUG_ERROR_START_MSG;\
+		UMP_PRINTF("ERROR: ");\
+		UMP_PRINT_FLUSH;\
+		UMP_DEBUG_TRACE(); \
+		UMP_PRINTF X ; \
+		UMP_PRINT_FLUSH;\
+		UMP_DEBUG_ERROR_STOP_MSG;\
+	} while (0)
 #else
-    #define UMP_DEBUG_ERROR( X ) do{ ; } while ( 0 )
+#define UMP_DEBUG_ERROR( X ) do{ ; } while ( 0 )
 #endif /* UMP_DEBUG_SKIP_ERROR */
 
 /**
@@ -198,22 +198,22 @@
  */
 
 #ifndef UMP_DEBUG_SKIP_ASSERT
-    #define UMP_DEBUG_ASSERT(expr, X ) \
-    do{\
-        if ( !(expr) ) \
-        { \
-                UMP_DEBUG_ERROR_START_MSG;\
-                UMP_PRINTF("ASSERT EXIT: ");\
-                UMP_PRINT_FLUSH;\
-                UMP_DEBUG_TRACE(); \
-                UMP_PRINTF X ; \
-                UMP_PRINT_FLUSH;\
-                UMP_DEBUG_ERROR_STOP_MSG;\
-                UMP_ASSERT_QUIT_CMD;\
-        }\
-    } while (0)
+#define UMP_DEBUG_ASSERT(expr, X ) \
+	do{\
+		if ( !(expr) ) \
+		{ \
+			UMP_DEBUG_ERROR_START_MSG;\
+			UMP_PRINTF("ASSERT EXIT: ");\
+			UMP_PRINT_FLUSH;\
+			UMP_DEBUG_TRACE(); \
+			UMP_PRINTF X ; \
+			UMP_PRINT_FLUSH;\
+			UMP_DEBUG_ERROR_STOP_MSG;\
+			UMP_ASSERT_QUIT_CMD;\
+		}\
+	} while (0)
 #else
-	#define UMP_DEBUG_ASSERT(expr, X)
+#define UMP_DEBUG_ASSERT(expr, X)
 #endif /* UMP_DEBUG_SKIP_ASSERT */
 
 
@@ -237,12 +237,12 @@
  *          The checking is disabled if "UMP_DEBUG_SKIP_ASSERT" is defined.
  */
 #ifndef UMP_DEBUG_SKIP_ASSERT
-	#define UMP_DEBUG_ASSERT_ALIGNMENT(ptr, align) do {                                                    \
+#define UMP_DEBUG_ASSERT_ALIGNMENT(ptr, align) do {                                                    \
 		UMP_DEBUG_ASSERT(0 == (align & (align - 1)), ("align %d is not a power-of-two", align));           \
 		UMP_DEBUG_ASSERT(0 == (((u32)(ptr)) & (align - 1)), ("ptr %p not aligned to %d bytes", (void*)ptr, align)); \
-		} while (0)
+	} while (0)
 #else
-	#define UMP_DEBUG_ASSERT_ALIGNMENT(ptr, align)
+#define UMP_DEBUG_ASSERT_ALIGNMENT(ptr, align)
 #endif /* UMP_DEBUG_SKIP_ASSERT */
 
 /**
@@ -252,8 +252,8 @@
  */
 #define UMP_DEBUG_ASSERT_RANGE(x, min, max) \
 	UMP_DEBUG_ASSERT( (x) >= (min) && (x) <= (max), \
-			   (#x " out of range (%2.2f)", (double)x ) \
-			 )
+	                  (#x " out of range (%2.2f)", (double)x ) \
+	                )
 
 /**
  * @def     UMP_DEBUG_ASSERT_LEQ(x,max)
@@ -262,8 +262,8 @@
  */
 #define UMP_DEBUG_ASSERT_LEQ(x, max) \
 	UMP_DEBUG_ASSERT( (x) <= (max), \
-			   (#x " out of range (%2.2f)", (double)x ) \
-			 )
+	                  (#x " out of range (%2.2f)", (double)x ) \
+	                )
 
 /**
  * @def     UMP_DEBUG_CODE( X )
@@ -272,9 +272,9 @@
  *
  */
 #ifdef UMP_DEBUG_SKIP_CODE
-    #define UMP_DEBUG_CODE( X )
+#define UMP_DEBUG_CODE( X )
 #else
-    #define UMP_DEBUG_CODE( X ) X
+#define UMP_DEBUG_CODE( X ) X
 #endif /* UMP_DEBUG_SKIP_CODE */
 
 #endif /* _UMP_DEBUG_H_ */

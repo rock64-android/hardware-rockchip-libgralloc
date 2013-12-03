@@ -1,7 +1,7 @@
 /*
  * This confidential and proprietary software may be used only as
  * authorised by a licensing agreement from ARM Limited
- * (C) COPYRIGHT 2009-2010, 2012 ARM Limited
+ * (C) COPYRIGHT 2009-2010, 2012-2013 ARM Limited
  * ALL RIGHTS RESERVED
  * The entire notice above must be reproduced on all authorised
  * copies and copies may only be made to the extent permitted
@@ -17,8 +17,7 @@
 #define __UMP_UK_TYPES_H__
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 /* Helpers for API version handling */
@@ -49,6 +48,9 @@ typedef enum
 	_UMP_IOC_SWITCH_HW_USAGE,
 	_UMP_IOC_LOCK,
 	_UMP_IOC_UNLOCK,
+#if MALI_RETINA
+	_UMP_DEDICATED_PHY_ADDRESS_GET,
+#endif
 }_ump_uk_functions;
 
 typedef enum
@@ -56,6 +58,7 @@ typedef enum
 	UMP_REF_DRV_UK_CONSTRAINT_NONE = 0,
 	UMP_REF_DRV_UK_CONSTRAINT_PHYSICALLY_LINEAR = 1,
 	UMP_REF_DRV_UK_CONSTRAINT_USE_CACHE = 4,
+	UMP_REF_DRV_UK_CONSTRAINT_PRE_RESERVE = 8,
 } ump_uk_alloc_constraints;
 
 typedef enum
@@ -83,7 +86,7 @@ typedef enum
 {
 	_UMP_UK_USED_BY_CPU = 0,
 	_UMP_UK_USED_BY_MALI = 1,
-	_UMP_UK_USED_BY_UNKNOWN_DEVICE= 100,
+	_UMP_UK_USED_BY_UNKNOWN_DEVICE = 100,
 } ump_uk_user;
 
 /**
@@ -133,7 +136,7 @@ typedef struct _ump_uk_map_mem_s
 	void *phys_addr;                /**< [in] physical address */
 	unsigned long size;             /**< [in] size */
 	u32 secure_id;                  /**< [in] secure_id to assign to mapping */
-	void * _ukk_private;            /**< Only used inside linux port between kernel frontend and common part to store vma */
+	void *_ukk_private;             /**< Only used inside linux port between kernel frontend and common part to store vma */
 	u32 cookie;
 	u32 is_cached;            /**< [in,out] caching of CPU mappings */
 } _ump_uk_map_mem_s;
@@ -143,7 +146,7 @@ typedef struct _ump_uk_unmap_mem_s
 	void *ctx;            /**< [in,out] user-kernel context (trashed on output) */
 	void *mapping;
 	u32 size;
-	void * _ukk_private;
+	void *_ukk_private;
 	u32 cookie;
 } _ump_uk_unmap_mem_s;
 
@@ -186,7 +189,14 @@ typedef struct _ump_uk_unlock_s
 	void *ctx;            /**< [in,out] user-kernel context (trashed on output) */
 	u32 secure_id;        /**< [in] secure_id that identifies the ump buffer */
 } _ump_uk_unlock_s;
-
+#if MALI_RETINA
+typedef struct _ump_uk_dedicated_phy_address_get_s
+{
+	void *ctx;
+	u32 secure_id;
+	u32 address;
+} _ump_uk_dedicated_phy_address_get_s;
+#endif
 #ifdef __cplusplus
 }
 #endif

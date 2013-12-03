@@ -1,7 +1,7 @@
 /*
  * This confidential and proprietary software may be used only as
  * authorised by a licensing agreement from ARM Limited
- * (C) COPYRIGHT 2008-2012 ARM Limited
+ * (C) COPYRIGHT 2008-2013 ARM Limited
  * ALL RIGHTS RESERVED
  * The entire notice above must be reproduced on all authorised
  * copies and copies may only be made to the extent permitted
@@ -33,7 +33,7 @@ extern "C" {
 /**
  * External representation of a UMP handle in user space.
  */
-typedef void * ump_handle;
+typedef void *ump_handle;
 
 /**
  * Typedef for a secure ID, a system wide identificator for UMP memory buffers.
@@ -156,7 +156,7 @@ UMP_API_EXPORT unsigned long ump_size_get(ump_handle mem);
  * @param offset Where to start reading, given in bytes.
  * @param length How much to read, given in bytes.
  */
-UMP_API_EXPORT void ump_read(void * dst, ump_handle src, unsigned long offset, unsigned long length);
+UMP_API_EXPORT void ump_read(void *dst, ump_handle src, unsigned long offset, unsigned long length);
 
 
 /**
@@ -173,7 +173,7 @@ UMP_API_EXPORT void ump_read(void * dst, ump_handle src, unsigned long offset, u
  * @param src Buffer to read from.
  * @param length How much to write, given in bytes.
  */
-UMP_API_EXPORT void ump_write(ump_handle dst, unsigned long offset, const void * src, unsigned long length);
+UMP_API_EXPORT void ump_write(ump_handle dst, unsigned long offset, const void *src, unsigned long length);
 
 
 /**
@@ -194,7 +194,7 @@ UMP_API_EXPORT void ump_write(ump_handle dst, unsigned long offset, const void *
  *
  * @return NULL indicates failure, otherwise a CPU mapped pointer is returned.
  */
-UMP_API_EXPORT void * ump_mapped_pointer_get(ump_handle mem);
+UMP_API_EXPORT void *ump_mapped_pointer_get(ump_handle mem);
 
 
 /**

@@ -1,7 +1,7 @@
 /*
  * This confidential and proprietary software may be used only as
  * authorised by a licensing agreement from ARM Limited
- * (C) COPYRIGHT 2008-2012 ARM Limited
+ * (C) COPYRIGHT 2008-2013 ARM Limited
  * ALL RIGHTS RESERVED
  * The entire notice above must be reproduced on all authorised
  * copies and copies may only be made to the extent permitted
@@ -19,18 +19,17 @@
 #include <stdarg.h>
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 
 typedef unsigned int u32;
 #ifdef _MSC_VER
-        typedef unsigned __int64        u64;
-        typedef signed   __int64        s64;
+typedef unsigned __int64        u64;
+typedef signed   __int64        s64;
 #else
-        typedef unsigned long long      u64;
-        typedef signed long long        s64;
+typedef unsigned long long      u64;
+typedef signed long long        s64;
 #endif
 
 #ifndef NULL
@@ -90,7 +89,7 @@ typedef enum
 	_UMP_OSK_ERR_RESTARTSYSCALL = -6, /**< Special: On certain OSs, must report when an interruptable mutex is interrupted. Ignore otherwise. */
 	_UMP_OSK_ERR_ITEM_NOT_FOUND = -7, /**< Table Lookup failed */
 	_UMP_OSK_ERR_BUSY = -8,           /**< Device/operation is busy. Try again later */
-	_UMP_OSK_ERR_UNSUPPORTED = -9,	/**< Optional part of the interface used, and is unsupported */
+	_UMP_OSK_ERR_UNSUPPORTED = -9,  /**< Optional part of the interface used, and is unsupported */
 } _ump_osk_errcode_t;
 
 /** @endcond */ /* end cond OSU_COPY_OF__UMP_OSU_ERRCODE_T */
@@ -146,7 +145,7 @@ typedef enum
 	 */
 	_UMP_OSU_LOCKFLAG_STATIC = 0x20000, /* Flag in OSU reserved range to identify lock as a statically initialized lock */
 
- } _ump_osu_lock_flags_t;
+} _ump_osu_lock_flags_t;
 
 typedef enum
 {
@@ -188,7 +187,7 @@ typedef struct _ump_osu_lock_t_struct _ump_osu_lock_t;
  * @param size Size of each element
  * @return On success, the zero-initialized buffer allocated. NULL on failure
  */
-void *_ump_osu_calloc( u32 n, u32 size );
+void *_ump_osu_calloc(u32 n, u32 size);
 
 /** @brief Allocate memory.
  *
@@ -210,7 +209,7 @@ void *_ump_osu_calloc( u32 n, u32 size );
  * @param size Number of bytes to allocate
  * @return On success, the buffer allocated. NULL on failure.
  */
-void *_ump_osu_malloc( u32 size );
+void *_ump_osu_malloc(u32 size);
 
 /** @brief Free memory.
  *
@@ -226,7 +225,7 @@ void *_ump_osu_malloc( u32 size );
  *
  * @param ptr Pointer to buffer to free
  */
-void _ump_osu_free( void *ptr );
+void _ump_osu_free(void *ptr);
 
 /** @brief Copies memory.
  *
@@ -241,7 +240,7 @@ void _ump_osu_free( void *ptr );
  * @param len Number of bytes to copy.
  * @return \a dst is always passed through unmodified.
  */
-void *_ump_osu_memcpy( void *dst, const void *src, u32	len );
+void *_ump_osu_memcpy(void *dst, const void *src, u32   len);
 
 /** @brief Fills memory.
  *
@@ -253,7 +252,7 @@ void *_ump_osu_memcpy( void *dst, const void *src, u32	len );
  * @param size Number of bytes to be set to the value.
  * @return \a ptr is always passed through unmodified
  */
-void *_ump_osu_memset( void *ptr, u32 chr, u32 size );
+void *_ump_osu_memset(void *ptr, u32 chr, u32 size);
 
 /** @} */ /* end group _ump_osu_memory */
 
@@ -276,7 +275,7 @@ void *_ump_osu_memset( void *ptr, u32 chr, u32 size );
  * @param order The locking order of the mutex. SBZ.
  * @return On success, a pointer to a \ref _ump_osu_lock_t object. NULL on failure.
  */
-_ump_osu_lock_t *_ump_osu_lock_init( _ump_osu_lock_flags_t flags, u32 initial, u32 order );
+_ump_osu_lock_t *_ump_osu_lock_init(_ump_osu_lock_flags_t flags, u32 initial, u32 order);
 
 /** @brief Obtain a statically initialized Mutual Exclusion Lock.
  *
@@ -290,17 +289,17 @@ _ump_osu_lock_t *_ump_osu_lock_init( _ump_osu_lock_flags_t flags, u32 initial, u
  * For the same \a nr a pointer to the same statically initialized lock is
  * returned. That is, given the following code:
  * @code
- *	extern u32 n;
+ *  extern u32 n;
  *
- * 	_ump_osu_lock_t *locka = _ump_osu_lock_static(n);
- *	_ump_osu_lock_t *lockb = _ump_osu_lock_static(n);
+ *  _ump_osu_lock_t *locka = _ump_osu_lock_static(n);
+ *  _ump_osu_lock_t *lockb = _ump_osu_lock_static(n);
  * @endcode
  * Then (locka == lockb), for all 0 <= n < UMP_OSU_STATIC_LOCK_COUNT.
  *
  * @param nr index of a statically initialized lock [0..UMP_OSU_STATIC_LOCK_COUNT-1]
  * @return On success, a pointer to a _ump_osu_lock_t object. NULL on failure.
  */
-_ump_osu_lock_t *_ump_osu_lock_static( u32 nr );
+_ump_osu_lock_t *_ump_osu_lock_static(u32 nr);
 
 /** @brief Initialize a Mutual Exclusion Lock safely across multiple threads.
  *
@@ -333,7 +332,7 @@ _ump_osu_lock_t *_ump_osu_lock_static( u32 nr );
  * initialized \ref _ump_osu_lock_t object is written into \a *pplock.
  * _UMP_OSU_ERR_FAULT is returned on failure.
  */
-_ump_osu_errcode_t _ump_osu_lock_auto_init( _ump_osu_lock_t **pplock, _ump_osu_lock_flags_t flags, u32 initial, u32 order );
+_ump_osu_errcode_t _ump_osu_lock_auto_init(_ump_osu_lock_t **pplock, _ump_osu_lock_flags_t flags, u32 initial, u32 order);
 
 /** @brief Wait for a lock to be signalled (obtained).
  *
@@ -348,7 +347,7 @@ _ump_osu_errcode_t _ump_osu_lock_auto_init( _ump_osu_lock_t **pplock, _ump_osu_l
  * must be _UMP_OSU_LOCKMODE_RW.
  * @return On success, _UMP_OSU_ERR_OK, _UMP_OSU_ERR_FAULT on error.
  */
-_ump_osu_errcode_t _ump_osu_lock_wait( _ump_osu_lock_t *lock, _ump_osu_lock_mode_t mode);
+_ump_osu_errcode_t _ump_osu_lock_wait(_ump_osu_lock_t *lock, _ump_osu_lock_mode_t mode);
 
 /** @brief Wait for a lock to be signalled (obtained) with timeout
  *
@@ -366,7 +365,7 @@ _ump_osu_errcode_t _ump_osu_lock_wait( _ump_osu_lock_t *lock, _ump_osu_lock_mode
  * @param timeout Relative time in microseconds for the timeout
  * @return _UMP_OSU_ERR_OK if the lock was obtained, _UMP_OSU_ERR_TIMEOUT if the timeout expired or  _UMP_OSU_ERR_FAULT on error.
  */
-_ump_osu_errcode_t _ump_osu_lock_timed_wait( _ump_osu_lock_t *lock, _ump_osu_lock_mode_t mode, u64 timeout);
+_ump_osu_errcode_t _ump_osu_lock_timed_wait(_ump_osu_lock_t *lock, _ump_osu_lock_mode_t mode, u64 timeout);
 
 /** @brief Test for a lock to be signalled and obtains the lock when so.
  *
@@ -387,7 +386,7 @@ _ump_osu_errcode_t _ump_osu_lock_timed_wait( _ump_osu_lock_t *lock, _ump_osu_loc
  * @return When the lock was obtained, _UMP_OSU_ERR_OK. If the lock could not
  * be obtained, _UMP_OSU_ERR_FAULT.
  */
-_ump_osu_errcode_t _ump_osu_lock_trywait( _ump_osu_lock_t *lock, _ump_osu_lock_mode_t mode);
+_ump_osu_errcode_t _ump_osu_lock_trywait(_ump_osu_lock_t *lock, _ump_osu_lock_mode_t mode);
 
 /** @brief Signal (release) a lock.
  *
@@ -398,7 +397,7 @@ _ump_osu_errcode_t _ump_osu_lock_trywait( _ump_osu_lock_t *lock, _ump_osu_lock_m
  * @param mode the mode in which the lock should be obtained. This must match
  * the mode in which the lock was waited upon.
  */
-void _ump_osu_lock_signal( _ump_osu_lock_t *lock, _ump_osu_lock_mode_t mode );
+void _ump_osu_lock_signal(_ump_osu_lock_t *lock, _ump_osu_lock_mode_t mode);
 
 /** @brief Terminate a lock.
  *
@@ -409,7 +408,7 @@ void _ump_osu_lock_signal( _ump_osu_lock_t *lock, _ump_osu_lock_mode_t mode );
  *
  * @param lock the lock to terminate.
  */
-void _ump_osu_lock_term( _ump_osu_lock_t *lock );
+void _ump_osu_lock_term(_ump_osu_lock_t *lock);
 /** @} */ /* end group _ump_osu_lock */
 
 /** @} */ /* end group osuapi */
