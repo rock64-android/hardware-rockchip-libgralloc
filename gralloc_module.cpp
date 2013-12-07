@@ -107,6 +107,9 @@ static int gralloc_register_buffer(gralloc_module_t const *module, buffer_handle
 
 			if (0 != hnd->base)
 			{
+#ifdef USE_LCDC_COMPOSER
+				memset((void*)hnd->base, 0, hnd->size);
+#endif
 				hnd->lockState = private_handle_t::LOCK_STATE_MAPPED;
 				hnd->writeOwner = 0;
 				hnd->lockState = 0;

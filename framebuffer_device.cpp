@@ -398,6 +398,23 @@ int init_frame_buffer_locked(struct private_module_t *module)
 		return -errno;
 	}
 
+#ifdef USE_LCDC_COMPOSER
+
+    {
+    	int fd1 = -1;
+        int disable = 0;
+        fd1 = open("/dev/graphics/fb1", O_RDWR, 0);
+        if(fd1 >= 0)
+        {
+            if (ioctl(fd1, 0x5019, &disable) == -1)
+            {
+                ALOGE("close fb[%d] fail.",fd);
+            }
+            ALOGD("real close fd");
+            close(fd1);
+        }
+	}
+#endif	
 	module->flags = flags;
 	module->info = info;
 	module->finfo = finfo;

@@ -53,6 +53,11 @@ LOCAL_C_INCLUDES += hardware/rk29/libgralloc_ump/ump/include
 LOCAL_CFLAGS := -DLOG_TAG=\"gralloc\" -DGRALLOC_32_BITS -DSTANDARD_LINUX_SCREEN -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
 endif
 
+#mod by huangds
+
+ifeq ($(strip $(BOARD_USE_LCDC_COMPOSER)),true)	
+LOCAL_CFLAGS += -DUSE_LCDC_COMPOSER
+endif
 LOCAL_SRC_FILES := \
 	gralloc_module.cpp \
 	alloc_device.cpp \

@@ -97,7 +97,7 @@ static int __ump_alloc_should_fail()
 #endif
 
 
-static int gralloc_alloc_buffer(alloc_device_t *dev, size_t size, int usage, buffer_handle_t *pHandle)
+static int gralloc_alloc_buffer(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle, bool reserve)
 {
 #if GRALLOC_ARM_DMA_BUF_MODULE
 	{
@@ -182,7 +182,7 @@ static int gralloc_alloc_buffer(alloc_device_t *dev, size_t size, int usage, buf
 		ump_handle ump_mem_handle;
 		void *cpu_ptr;
 		ump_secure_id ump_id;
-		ump_alloc_constraints constraints;
+		int constraints;
 
 		size = round_up_to_page_size(size);
 
@@ -194,6 +194,10 @@ static int gralloc_alloc_buffer(alloc_device_t *dev, size_t size, int usage, buf
 		{
 			constraints = UMP_REF_DRV_CONSTRAINT_NONE;
 		}
+		if ( reserve )
+		{
+		    constraints |= UMP_REF_DRV_CONSTRAINT_PRE_RESERVE;
+		}
 
 #ifdef GRALLOC_SIMULATE_FAILURES
 		/* if the failure condition matches, fail this iteration */
@@ -204,7 +208,7 @@ static int gralloc_alloc_buffer(alloc_device_t *dev, size_t size, int usage, buf
 		else
 #endif
 		{
-			ump_mem_handle = ump_ref_drv_allocate(size, constraints);
+			ump_mem_handle = ump_ref_drv_allocate(size, (ump_alloc_constraints)constraints);
 
 			if (UMP_INVALID_MEMORY_HANDLE != ump_mem_handle)
 			{
@@ -221,6 +225,9 @@ static int gralloc_alloc_buffer(alloc_device_t *dev, size_t size, int usage, buf
 
 						if (NULL != hnd)
 						{
+						#ifdef  USE_LCDC_COMPOSER
+                    		hnd->phy_addr = ump_phy_addr_get(ump_mem_handle);
+                    	#endif
 							*pHandle = hnd;
 							return 0;
 						}
@@ -281,7 +288,7 @@ static int gralloc_alloc_framebuffer_locked(alloc_device_t *dev, size_t size, in
 		// screen when post is called.
 		int newUsage = (usage & ~GRALLOC_USAGE_HW_FB) | GRALLOC_USAGE_HW_2D;
 		AERR("fallback to single buffering. Virtual Y-res too small %d", m->info.yres);
-		return gralloc_alloc_buffer(dev, bufferSize, newUsage, pHandle);
+		return gralloc_alloc_buffer(dev, bufferSize, newUsage, pHandle, false);
 	}
 
 	if (bufferMask >= ((1LU << numBuffers) - 1))
@@ -352,6 +359,7 @@ static int gralloc_alloc_framebuffer(alloc_device_t *dev, size_t size, int usage
 	return err;
 }
 
+static unsigned int memsizealloc = 0;
 static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int usage, buffer_handle_t *pHandle, int *pStride)
 {
 	if (!pHandle || !pStride)
@@ -362,6 +370,7 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
 	size_t size;
 	size_t stride;
 	size_t bpr = 0;
+	bool reserve = false;
 	if (format == HAL_PIXEL_FORMAT_YCrCb_420_SP
                         || format == HAL_PIXEL_FORMAT_YV12
 						|| format == HAL_PIXEL_FORMAT_YCrCb_NV12
@@ -406,6 +415,7 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
 	}
 	else
 	{
+		int align = 8;
 		int bpp = 0;
 
 		switch (format)
@@ -432,13 +442,72 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
 				return -EINVAL;
 		}
 
-		size_t bpr = GRALLOC_ALIGN(w * bpp, 64);
-		size = bpr * h;
+	int w_e = w, h_e = h;
+
+#ifdef USE_LCDC_COMPOSER
+
+        if (!(usage & GRALLOC_USAGE_HW_FB)) {
+        #ifndef LCDC_COMPOSER_LANDSCAPE_ONLY
+            private_module_t* m = reinterpret_cast<private_module_t*>(dev->common.module);
+            uint32_t rot = (usage & GRALLOC_USAGE_ROT_MASK) >> 24;
+            int bar = 0;    
+            ALOGD("rot=%d",rot);
+            if(rot & 0x08) {
+                rot &= ~0x08;
+                switch(rot) {
+                case 0:
+                case HAL_TRANSFORM_ROT_180:
+                    bar = m->info.yres - h;
+                    ALOGD("bar=%d",bar);
+                    
+                    if((w == m->info.xres) && (bar > 0) && (bar < 100)) {
+                        if(0 == rot)
+                            h_e += bar;
+                        else
+                            reserve = true;
+                    }
+                    break;
+                case HAL_TRANSFORM_ROT_90:
+                case HAL_TRANSFORM_ROT_270:
+                    bar = m->info.xres - w;
+                    if((h == m->info.yres) && (bar > 0) && (bar < 100)) {
+                        w_e += bar;
+                    }
+                    if (rot == HAL_TRANSFORM_ROT_90)
+                    {
+						 reserve = true;
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+            //ALOGD("rot[%d]: %d x %d => %d x %d, reserve=%d", rot, w, h, w_e, h_e, (int)reserve);
+        #else
+            h_e += 100;
+        #endif
+        }
+        if(w_e % 32) {
+            //ALOGD("alloc_device_alloc, w[%d] not align, aligned to %d", w_e, (w + 31) & (~31));
+            w_e = (w + 31) & (~31);
+        }
+#endif
+		if (!(usage & GRALLOC_USAGE_HW_FB))
+		{
+			if(w_e % 32) {
+				w_e = (w + 31) & (~31);
+			}
+
+		}
+		
+	//	bpr = (w_e*bpp + (align-1)) & ~(align-1);
+	 	bpr = GRALLOC_ALIGN(w_e * bpp, 64);
+		size = bpr * h_e;
 		stride = bpr / bpp;
 	}
 
 	int err;
-
+	char memstr[100] = {0,};
 #ifndef MALI_600
 
 	if (usage & GRALLOC_USAGE_HW_FB)
@@ -449,7 +518,15 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
 #endif
 
 	{
-		err = gralloc_alloc_buffer(dev, size, usage, pHandle);
+		err = gralloc_alloc_buffer(dev, size , usage, pHandle, reserve);
+		#ifdef USE_LCDC_COMPOSER
+		if( err == 0)
+		{
+			memsizealloc += size;
+			sprintf(memstr,"%d KB",memsizealloc/1024);
+			property_set("sys.memsize",memstr);
+		}
+		#endif
 	}
 
 	if (err < 0)
@@ -504,6 +581,10 @@ static int alloc_device_free(alloc_device_t *dev, buffer_handle_t handle)
 
 	private_handle_t const *hnd = reinterpret_cast<private_handle_t const *>(handle);
 
+    if (hnd->format == HAL_PIXEL_FORMAT_YCrCb_NV12_VIDEO)
+    {
+        property_set("sys.gmali.performance","ui");
+    }
 	if (hnd->flags & private_handle_t::PRIV_FLAGS_FRAMEBUFFER)
 	{
 		// free this buffer
@@ -525,6 +606,11 @@ static int alloc_device_free(alloc_device_t *dev, buffer_handle_t handle)
 	else if (hnd->flags & private_handle_t::PRIV_FLAGS_USES_UMP)
 	{
 #if GRALLOC_ARM_UMP_MODULE
+		int align = 8;
+		int bpp = 0;
+		int w, h;
+		size_t size;
+		char memstr[100] = {0,};
 
 		/* Buffer might be unregistered so we need to check for invalid ump handle*/
 		if ((int)UMP_INVALID_MEMORY_HANDLE != hnd->ump_mem_handle)
@@ -532,7 +618,37 @@ static int alloc_device_free(alloc_device_t *dev, buffer_handle_t handle)
 			ump_mapped_pointer_release((ump_handle)hnd->ump_mem_handle);
 			ump_reference_release((ump_handle)hnd->ump_mem_handle);
 		}
+		#ifdef USE_LCDC_COMPOSER
 
+		w = hnd->width;
+		h = hnd->height; 	 
+
+		switch (hnd->format)
+		{
+			case HAL_PIXEL_FORMAT_RGBA_8888:
+			case HAL_PIXEL_FORMAT_RGBX_8888:
+			case HAL_PIXEL_FORMAT_BGRA_8888:
+				bpp = 4;
+				break;
+			case HAL_PIXEL_FORMAT_RGB_888:
+				bpp = 3;
+				break;
+			case HAL_PIXEL_FORMAT_RGB_565:
+				bpp = 2;
+				break;
+			case HAL_PIXEL_FORMAT_YCrCb_NV12_VIDEO:
+				bpp = 2;
+				break;
+			default:
+				return -EINVAL;
+		}
+	 	size_t bpr = GRALLOC_ALIGN(w * bpp, 64);
+		
+		size = bpr * h ;
+		memsizealloc -= size;
+		sprintf(memstr,"%d KB",memsizealloc/1024);
+		property_set("sys.memsize",memstr);		
+		#endif
 #else
 		AERR("Can't free ump memory for handle:0x%x. Not supported.", (unsigned int)hnd);
 #endif
