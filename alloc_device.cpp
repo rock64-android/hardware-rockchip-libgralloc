@@ -97,7 +97,8 @@ static int __ump_alloc_should_fail()
 #endif
 
 
-static int gralloc_alloc_buffer(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle, bool reserve)
+//static int gralloc_alloc_buffer(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle, bool reserve)
+static int gralloc_alloc_buffer(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle, int reserve)
 {
 #if GRALLOC_ARM_DMA_BUF_MODULE
 	{
@@ -194,11 +195,17 @@ static int gralloc_alloc_buffer(alloc_device_t* dev, size_t size, int usage, buf
 		{
 			constraints = UMP_REF_DRV_CONSTRAINT_NONE;
 		}
-		if ( reserve )
+	    if ( reserve & 0x01)
 		{
+		
 		    constraints |= UMP_REF_DRV_CONSTRAINT_PRE_RESERVE;
 		}
+		
+		if( reserve & 0x02)
+		{
+            constraints |= UMP_REF_DRV_UK_CONSTRAINT_MEM_SWITCH;
 
+		}
 #ifdef GRALLOC_SIMULATE_FAILURES
 		/* if the failure condition matches, fail this iteration */
 		if (__ump_alloc_should_fail())
@@ -226,7 +233,14 @@ static int gralloc_alloc_buffer(alloc_device_t* dev, size_t size, int usage, buf
 						if (NULL != hnd)
 						{
 						#ifdef  USE_LCDC_COMPOSER
-                    		hnd->phy_addr = ump_phy_addr_get(ump_mem_handle);
+            		 		if( reserve & 0x02)
+					  		{
+	                    		hnd->phy_addr = 0;    
+					  		}
+					  		else
+					  		{
+                    		    hnd->phy_addr = ump_phy_addr_get(ump_mem_handle);        
+                    		}    
                     	#endif
 							*pHandle = hnd;
 							return 0;
@@ -370,7 +384,7 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
 	size_t size;
 	size_t stride;
 	size_t bpr = 0;
-	bool reserve = false;
+	int reserve = false;
 	if (format == HAL_PIXEL_FORMAT_YCrCb_420_SP
                         || format == HAL_PIXEL_FORMAT_YV12
 						|| format == HAL_PIXEL_FORMAT_YCrCb_NV12
@@ -525,6 +539,12 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
 			memsizealloc += size;
 			sprintf(memstr,"%d KB",memsizealloc/1024);
 			property_set("sys.memsize",memstr);
+		}
+		else
+		{
+		    ALOGW("phy alloc fail ,alloc second time2");
+		    err = gralloc_alloc_buffer(dev, size , usage, pHandle, reserve | 0x02);
+		    ALOGW(" second alloc err=%d",err);		
 		}
 		#endif
 	}
