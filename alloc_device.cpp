@@ -465,7 +465,6 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
             private_module_t* m = reinterpret_cast<private_module_t*>(dev->common.module);
             uint32_t rot = (usage & GRALLOC_USAGE_ROT_MASK) >> 24;
             int bar = 0;    
-            ALOGD("rot=%d",rot);
             if(rot & 0x08) {
                 rot &= ~0x08;
                 switch(rot) {
