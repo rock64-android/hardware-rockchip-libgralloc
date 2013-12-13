@@ -241,7 +241,6 @@ static int gralloc_alloc_buffer(alloc_device_t* dev, size_t size, int usage, buf
 					  		{
                     		    hnd->phy_addr = ump_phy_addr_get(ump_mem_handle);        
                     		}   
-                    		ALOGD("gralloc get phy_addr=%x size=%d",hnd->phy_addr,size);
                     	#endif
 							*pHandle = hnd;
 							return 0;
@@ -466,16 +465,38 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
             private_module_t* m = reinterpret_cast<private_module_t*>(dev->common.module);
             uint32_t rot = (usage & GRALLOC_USAGE_ROT_MASK) >> 24;
             int bar = 0;    
-                    
+            ALOGD("alloc rot=%x",rot);
+            if(rot & 0x08) {
+                rot &= ~0x08;
+                switch(rot) {
+                case 0:
+                case HAL_TRANSFORM_ROT_180:
             bar = m->info.yres - h;            
-            if((bar > 0) && (bar < 100)) {
+                    //ALOGD("bar=%d",bar);
            
+                    if((w == m->info.xres) && (bar > 0) && (bar < 100)) {
+                        if(0 == rot)
                 h_e += bar;
-               // else
-                  //  reserve = true;
+                        else
+                            reserve = true;
             }
-            ALOGD("h=%d,h_e=%d,bar=%d",h,h_e,bar);                    
-         
+                    ALOGI("bar=%d,h=%d,h_e=%d,w=%d",bar,h,h_e,w);
+                    break;
+                case HAL_TRANSFORM_ROT_90:
+                case HAL_TRANSFORM_ROT_270:
+                    bar = m->info.xres - w;
+                    if((h == m->info.yres) && (bar > 0) && (bar < 100)) {
+                        w_e += bar;
+                    }
+                    if (rot == HAL_TRANSFORM_ROT_90)
+                    {
+						 reserve = true;
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
             //ALOGD("rot[%d]: %d x %d => %d x %d, reserve=%d", rot, w, h, w_e, h_e, (int)reserve);
         #else
             h_e += 100;
