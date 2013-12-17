@@ -465,22 +465,22 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
             private_module_t* m = reinterpret_cast<private_module_t*>(dev->common.module);
             uint32_t rot = (usage & GRALLOC_USAGE_ROT_MASK) >> 24;
             int bar = 0;    
-            ALOGD("alloc rot=%x",rot);
+           
             if(rot & 0x08) {
                 rot &= ~0x08;
                 switch(rot) {
                 case 0:
                 case HAL_TRANSFORM_ROT_180:
-            bar = m->info.yres - h;            
+                    bar = m->info.yres - h;            
                     //ALOGD("bar=%d",bar);
            
                     if((w == m->info.xres) && (bar > 0) && (bar < 100)) {
                         if(0 == rot)
-                h_e += bar;
+                            h_e += bar;
                         else
                             reserve = true;
-            }
-                    ALOGI("bar=%d,h=%d,h_e=%d,w=%d",bar,h,h_e,w);
+                    }
+                    ALOGI("[0/180]bar=%d,w=%d,h=%d,w_e=%d,h_e=%d",bar,w,h,w_e,h_e);
                     break;
                 case HAL_TRANSFORM_ROT_90:
                 case HAL_TRANSFORM_ROT_270:
@@ -488,14 +488,33 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
                     if((h == m->info.yres) && (bar > 0) && (bar < 100)) {
                         w_e += bar;
                     }
-                    if (rot == HAL_TRANSFORM_ROT_90)
+                    if (rot == HAL_TRANSFORM_ROT_270)
                     {
 						 reserve = true;
                     }
+                    ALOGI("[90/270]bar=%d,w=%d,h=%d,w_e=%d,h_e=%d",bar,w,h,w_e,h_e);
+
                     break;
                 default:
                     break;
                 }
+            }
+            else
+            {
+                int bar_h;
+                int bar_w;
+                bar_h = m->info.yres - h;   
+                bar_w = m->info.xres - w;
+                    //ALOGD("bar=%d",bar);           
+                if((w == m->info.xres) && (bar_h > 0) && (bar_h < 100)) 
+                {
+                     h_e += bar_h;
+                }
+                else if((h == m->info.yres) && (bar_w > 0) && (bar_w < 100))
+                {
+                     w_e += bar_w;
+                }
+                ALOGI("[other rot=%x]bar_w=%d,bar_h=%d,w=%d,h=%d,w_e=%d,h_e=%d",rot,bar_w,bar_h,w,h,w_e,h_e);                            
             }
             //ALOGD("rot[%d]: %d x %d => %d x %d, reserve=%d", rot, w, h, w_e, h_e, (int)reserve);
         #else
