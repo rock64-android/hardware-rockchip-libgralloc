@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+ifeq ($(strip $(TARGET_BOARD_PLATFORM_GPU)),mali400)
 LOCAL_PATH := $(call my-dir)
 
 # HAL module implemenation, not prelinked and stored in
@@ -67,3 +67,5 @@ LOCAL_MODULE := gralloc.$(TARGET_BOARD_HARDWARE)
 LOCAL_MODULE_TAGS := optional
 #LOCAL_CFLAGS+= -DMALI_VSYNC_EVENT_REPORT_ENABLE
 include $(BUILD_SHARED_LIBRARY)
+
+endif
