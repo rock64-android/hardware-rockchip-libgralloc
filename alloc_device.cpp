@@ -437,6 +437,7 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
 			case HAL_PIXEL_FORMAT_RGBA_8888:
 			case HAL_PIXEL_FORMAT_RGBX_8888:
 			case HAL_PIXEL_FORMAT_BGRA_8888:
+            case HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED:
 				bpp = 4;
 				break;
 
