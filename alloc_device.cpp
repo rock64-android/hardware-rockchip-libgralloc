@@ -481,7 +481,7 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
                         else
                             reserve = true;
                     }
-                    ALOGI("[0/180]bar=%d,w=%d,h=%d,w_e=%d,h_e=%d",bar,w,h,w_e,h_e);
+                    ALOGI("rot=%d [0/180]bar=%d,w=%d,h=%d,w_e=%d,h_e=%d",rot,bar,w,h,w_e,h_e);
                     break;
                 case HAL_TRANSFORM_ROT_90:
                 case HAL_TRANSFORM_ROT_270:
@@ -493,7 +493,7 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
                     {
 						 reserve = true;
                     }
-                    ALOGI("[90/270]bar=%d,w=%d,h=%d,w_e=%d,h_e=%d",bar,w,h,w_e,h_e);
+                    ALOGI("rot=%d  [90/270]bar=%d,w=%d,h=%d,w_e=%d,h_e=%d",rot,bar,w,h,w_e,h_e);
 
                     break;
                 default:
