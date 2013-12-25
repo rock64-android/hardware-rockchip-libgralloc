@@ -481,6 +481,7 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
                         else
                             reserve = true;
                     }
+
                     ALOGI("rot=%d [0/180]bar=%d,w=%d,h=%d,w_e=%d,h_e=%d",rot,bar,w,h,w_e,h_e);
                     break;
                 case HAL_TRANSFORM_ROT_90:
@@ -493,6 +494,7 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
                     {
 						 reserve = true;
                     }
+
                     ALOGI("rot=%d  [90/270]bar=%d,w=%d,h=%d,w_e=%d,h_e=%d",rot,bar,w,h,w_e,h_e);
 
                     break;
@@ -515,6 +517,8 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
                 {
                      w_e += bar_w;
                 }
+                reserve = true;
+
                 ALOGI("[other rot=%x]bar_w=%d,bar_h=%d,w=%d,h=%d,w_e=%d,h_e=%d",rot,bar_w,bar_h,w,h,w_e,h_e);                            
             }
             //ALOGD("rot[%d]: %d x %d => %d x %d, reserve=%d", rot, w, h, w_e, h_e, (int)reserve);
@@ -553,7 +557,7 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
 #endif
 
 	{
-		err = gralloc_alloc_buffer(dev, size , usage, pHandle, reserve);
+		err = gralloc_alloc_buffer(dev, size  , usage, pHandle, reserve);
 		#ifdef USE_LCDC_COMPOSER
 		if( err == 0)
 		{
