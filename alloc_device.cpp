@@ -151,6 +151,7 @@ static int gralloc_alloc_buffer(alloc_device_t* dev, size_t size, int usage, buf
 		{
 			hnd->share_fd = shared_fd;
 			hnd->ion_hnd = ion_hnd;
+			hnd->phy_addr = 0;
 			*pHandle = hnd;
 			return 0;
 		}
@@ -482,7 +483,7 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
                             reserve = true;
                     }
 
-                    ALOGI("rot=%d [0/180]bar=%d,w=%d,h=%d,w_e=%d,h_e=%d",rot,bar,w,h,w_e,h_e);
+                    //ALOGI("rot=%d [0/180]bar=%d,w=%d,h=%d,w_e=%d,h_e=%d",rot,bar,w,h,w_e,h_e);
                     break;
                 case HAL_TRANSFORM_ROT_90:
                 case HAL_TRANSFORM_ROT_270:
@@ -495,7 +496,7 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
 						 reserve = true;
                     }
 
-                    ALOGI("rot=%d  [90/270]bar=%d,w=%d,h=%d,w_e=%d,h_e=%d",rot,bar,w,h,w_e,h_e);
+                   // ALOGI("rot=%d  [90/270]bar=%d,w=%d,h=%d,w_e=%d,h_e=%d",rot,bar,w,h,w_e,h_e);
 
                     break;
                 default:
@@ -519,7 +520,7 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
                 }
                 reserve = true;
 
-                ALOGI("[other rot=%x]bar_w=%d,bar_h=%d,w=%d,h=%d,w_e=%d,h_e=%d",rot,bar_w,bar_h,w,h,w_e,h_e);                            
+               // ALOGI("[other rot=%x]bar_w=%d,bar_h=%d,w=%d,h=%d,w_e=%d,h_e=%d",rot,bar_w,bar_h,w,h,w_e,h_e);                            
             }
             //ALOGD("rot[%d]: %d x %d => %d x %d, reserve=%d", rot, w, h, w_e, h_e, (int)reserve);
         #else
@@ -557,6 +558,12 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
 #endif
 
 	{
+		#ifdef USE_LCDC_COMPOSER	
+	    if(usage == (GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_SW_WRITE_OFTEN | GRALLOC_USAGE_SW_READ_OFTEN ))
+	    {
+	        reserve |= 0x02;  // force Brower GraphicBufferAllocator to logics memery
+	    }
+	    #endif
 		err = gralloc_alloc_buffer(dev, size  , usage, pHandle, reserve);
 		#ifdef USE_LCDC_COMPOSER
 		if( err == 0)
@@ -565,7 +572,7 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
 			sprintf(memstr,"%d KB",memsizealloc/1024);
 			property_set("sys.memsize",memstr);
 		}
-		else
+		else if(!(reserve & 0x02))
 		{
 		    ALOGW("phy alloc fail ,alloc second time2");
 		    err = gralloc_alloc_buffer(dev, size , usage, pHandle, reserve | 0x02);
