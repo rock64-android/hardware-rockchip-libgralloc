@@ -101,7 +101,7 @@ static int fb_post(struct framebuffer_device_t *dev, buffer_handle_t buffer)
 		int videodata[2];
 		videodata[1] = videodata[0] = m->finfo.smem_start;
 		ioctl(m->framebuffer->fd, 0x5002, videodata);
-		ioctl(m->framebuffer->fd, 0x5004, hnd->share_fd);
+		ioctl(m->framebuffer->fd, 0x5004, &(hnd->share_fd));
 		ALOGD("fb_post: share_fd=%d, offset=%d, smem_start=0x%08x", 
 		        hnd->share_fd, hnd->offset, m->finfo.smem_start);
 		if (ioctl(m->framebuffer->fd, FBIOPUT_VSCREENINFO, &m->info) == -1)
