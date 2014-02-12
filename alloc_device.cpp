@@ -38,7 +38,7 @@
 #endif
 
 #if GRALLOC_ARM_DMA_BUF_MODULE
-#include <linux/ion.h>
+//#include <linux/ion.h>
 #include <ion/ion.h>
 #endif
 
@@ -99,7 +99,7 @@ static int __ump_alloc_should_fail()
 
 //static int gralloc_alloc_buffer(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle, bool reserve)
 static int gralloc_alloc_buffer(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle, int reserve)
-{
+{    
 #if GRALLOC_ARM_DMA_BUF_MODULE
 	{
 		private_module_t *m = reinterpret_cast<private_module_t *>(dev->common.module);
@@ -108,7 +108,7 @@ static int gralloc_alloc_buffer(alloc_device_t* dev, size_t size, int usage, buf
 		int shared_fd;
 		int ret;
 
-		ret = ion_alloc(m->ion_client, size, 0, ION_HEAP_SYSTEM_MASK, 0, &ion_hnd);
+		ret = ion_alloc(m->ion_client, size, 0, 2, 0, &ion_hnd);
 
 		if (ret != 0)
 		{
@@ -153,6 +153,7 @@ static int gralloc_alloc_buffer(alloc_device_t* dev, size_t size, int usage, buf
 			hnd->ion_hnd = ion_hnd;
 			hnd->phy_addr = 0;
 			*pHandle = hnd;
+			ALOGD("gralloc_alloc_buffer succ! (size=%d, usage=%d, shared_fd=%d, ion_hnd=%p)", size, usage, shared_fd, ion_hnd);
 			return 0;
 		}
 		else
@@ -347,16 +348,18 @@ static int gralloc_alloc_framebuffer_locked(alloc_device_t *dev, size_t size, in
 
 #if GRALLOC_ARM_DMA_BUF_MODULE
 	{
-#ifdef FBIOGET_DMABUF
-		struct fb_dmabuf_export fb_dma_buf;
-
-		if (ioctl(m->framebuffer->fd, FBIOGET_DMABUF, &fb_dma_buf) == 0)
+//#ifdef FBIOGET_DMABUF
+		//struct fb_dmabuf_export fb_dma_buf;
+        int share_fd = -1;
+		if (ioctl(m->framebuffer->fd, 0x5003, &share_fd) == 0)
 		{
-			AINF("framebuffer accessed with dma buf (fd 0x%x)\n", (int)fb_dma_buf.fd);
-			hnd->share_fd = fb_dma_buf.fd;
+			//AINF("framebuffer accessed with dma buf (fd 0x%x)\n", (int)share_fd);
+			hnd->share_fd = share_fd;
 		}
+		ALOGD("gralloc_alloc_framebuffer_locked: size=%d, usage=%d, share_fd=%d, offset=%d, smem_start=0x%08x", 
+		    size, usage, hnd->share_fd, hnd->offset, m->finfo.smem_start);
 
-#endif
+//#endif
 	}
 #endif
 
@@ -549,7 +552,6 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
 	int err;
 	char memstr[100] = {0,};
 #ifndef MALI_600
-
 	if (usage & GRALLOC_USAGE_HW_FB)
 	{
 		err = gralloc_alloc_framebuffer(dev, size, usage, pHandle);
@@ -639,6 +641,9 @@ static int alloc_device_free(alloc_device_t *dev, buffer_handle_t handle)
     }
 	if (hnd->flags & private_handle_t::PRIV_FLAGS_FRAMEBUFFER)
 	{
+	    ALOGD("alloc_device_free PRIV_FLAGS_FRAMEBUFFER: (shared_fd=%d, offset=%d)", 
+	        hnd->share_fd, hnd->offset);
+
 		// free this buffer
 		private_module_t *m = reinterpret_cast<private_module_t *>(dev->common.module);
 		const size_t bufferSize = m->finfo.line_length * m->info.yres;
@@ -709,6 +714,9 @@ static int alloc_device_free(alloc_device_t *dev, buffer_handle_t handle)
 	{
 #if GRALLOC_ARM_DMA_BUF_MODULE
 		private_module_t *m = reinterpret_cast<private_module_t *>(dev->common.module);
+
+	    ALOGD("alloc_device_free PRIV_FLAGS_USES_ION: (shared_fd=%d, offset=%d)", 
+	        hnd->share_fd, hnd->offset);
 
 		/* Buffer might be unregistered so we need to check for invalid ump handle*/
 		if (0 != hnd->base)
