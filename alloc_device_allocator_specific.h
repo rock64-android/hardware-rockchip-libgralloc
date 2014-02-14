@@ -1,7 +1,5 @@
 /*
- * Copyright (C) 2010 ARM Limited. All rights reserved.
- *
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2013 ARM Limited. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +14,12 @@
  * limitations under the License.
  */
 
-#ifndef GRALLOC_HELPER_H_
-#define GRALLOC_HELPER_H_
+int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle);
 
-#include <sys/mman.h>
+int alloc_backend_alloc_framebuffer(private_module_t* m, private_handle_t* hnd);
 
-inline size_t round_up_to_page_size(size_t x)
-{
-    return (x + (PAGE_SIZE-1)) & ~(PAGE_SIZE-1);
-}
+void alloc_backend_alloc_free(private_handle_t const* hnd, private_module_t* m);
 
-#endif /* GRALLOC_HELPER_H_ */
+int alloc_backend_open(alloc_device_t *dev);
+
+int alloc_backend_close(struct hw_device_t *device);
