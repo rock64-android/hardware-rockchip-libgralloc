@@ -174,7 +174,12 @@ struct private_handle_t
 #define GRALLOC_ARM_NUM_FDS 0	
 #else
 	struct ion_handle *ion_hnd;
-#define GRALLOC_ARM_NUM_INTS 2
+	// Rk: add for video special process
+	int     video_share_fd;
+	int     video_width;
+	int     video_height;
+
+#define GRALLOC_ARM_NUM_INTS (2+3)
 #endif
 
 #ifdef __cplusplus
