@@ -142,7 +142,7 @@ struct private_handle_t
 	 * processes.
 	 * DO NOT MOVE THIS ELEMENT!
 	 */
-	int     share_fd;
+	int     share_fd;	
 #define GRALLOC_ARM_NUM_FDS 1	
 #endif
 
@@ -175,7 +175,7 @@ struct private_handle_t
 #else
 	struct ion_handle *ion_hnd;
 	// Rk: add for video special process
-	int     video_share_fd;
+	int     video_addr;
 	int     video_width;
 	int     video_height;
 
