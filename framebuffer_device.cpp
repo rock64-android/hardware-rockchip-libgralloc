@@ -26,6 +26,8 @@
 #include <cutils/atomic.h>
 #include <hardware/hardware.h>
 #include <hardware/gralloc.h>
+#include <hardware/rk_fh.h>
+
 
 #include <GLES/gl.h>
 
@@ -123,6 +125,7 @@ static int fb_post(struct framebuffer_device_t* dev, buffer_handle_t buffer)
 #else 
 		/*Standard Android way*/
 		gralloc_mali_vsync_report(MALI_VSYNC_EVENT_BEGIN_WAIT);
+		#if 0
 		ioctl(m->framebuffer->fd, 0x5004, &(hnd->share_fd));
 		if (ioctl(m->framebuffer->fd, FBIOPUT_VSCREENINFO, &m->info) == -1) 
 		{
@@ -131,8 +134,30 @@ static int fb_post(struct framebuffer_device_t* dev, buffer_handle_t buffer)
 			m->base.unlock(&m->base, buffer); 
 			return -errno;
 		}
+		#endif
 		int sync = 0;
-		ioctl(m->framebuffer->fd, RK_FBIOSET_CONFIG_DONE, &sync);
+        struct rk_fb_win_cfg_data fb_info;
+        memset(&fb_info,0,sizeof(fb_info));
+		
+        unsigned int fboffset = hnd->offset;        
+        fb_info.win_par[0].data_format = hnd->format;
+        fb_info.win_par[0].win_id = 0;
+        fb_info.win_par[0].z_order = 0;
+        fb_info.win_par[0].area_par[0].ion_fd = hnd->share_fd;
+        fb_info.win_par[0].area_par[0].acq_fence_fd = -1;
+        fb_info.win_par[0].area_par[0].x_offset = 0;
+        fb_info.win_par[0].area_par[0].y_offset = fboffset/m->finfo.line_length;
+        fb_info.win_par[0].area_par[0].xpos = 0;
+        fb_info.win_par[0].area_par[0].ypos = 0;
+        fb_info.win_par[0].area_par[0].xsize = hnd->width;
+        fb_info.win_par[0].area_par[0].ysize = hnd->height;
+        fb_info.win_par[0].area_par[0].xact = hnd->width;
+        fb_info.win_par[0].area_par[0].yact = hnd->height;
+        fb_info.win_par[0].area_par[0].xvir = hnd->width;
+        fb_info.win_par[0].area_par[0].yvir = hnd->height;
+        ioctl(m->framebuffer->fd, RK_FBIOSET_CONFIG_DONE, &fb_info);
+		
+		//ioctl(m->framebuffer->fd, RK_FBIOSET_CONFIG_DONE, &sync);
 		gralloc_mali_vsync_report(MALI_VSYNC_EVENT_END_WAIT);
 #endif
 		m->currentBuffer = buffer;
