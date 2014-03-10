@@ -33,6 +33,8 @@
 #include "framebuffer_device.h"
 
 #include "alloc_device_allocator_specific.h"
+#include <cutils/properties.h>
+#include <stdlib.h>
 
 static int gralloc_alloc_framebuffer_locked(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle)
 {
@@ -123,6 +125,9 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 	if (format == HAL_PIXEL_FORMAT_YCrCb_420_SP || format == HAL_PIXEL_FORMAT_YV12 ||
         format == HAL_PIXEL_FORMAT_YCrCb_NV12 || format == HAL_PIXEL_FORMAT_YCrCb_NV12_VIDEO)
 	{
+        int bpp = 4;
+        char property[PROPERTY_VALUE_MAX];
+		int fmtflag = 0;
 		switch (format)
 		{
 			case HAL_PIXEL_FORMAT_YCrCb_420_SP:
@@ -135,10 +140,21 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 				 * Additional custom formats can be added here.
 				 */
 			case HAL_PIXEL_FORMAT_YCrCb_NV12:
-			case HAL_PIXEL_FORMAT_YCrCb_NV12_VIDEO:
 				stride = GRALLOC_ALIGN(w, 16);
 				byte_stride = stride;
 				size = h * (stride + GRALLOC_ALIGN(stride/2,16));
+				break;
+			case HAL_PIXEL_FORMAT_YCrCb_NV12_VIDEO:
+				if (property_get("sys.yuv.rgb.format", property, NULL) > 0) {
+					fmtflag = atoi(property);
+				}
+				if(fmtflag == 1)
+					bpp = 2;
+				else 
+					bpp = 4;				
+				stride = GRALLOC_ALIGN(w, 16);
+				byte_stride = stride*bpp;
+				size = h * byte_stride;
 				break;
 			default:
 				return -EINVAL;
