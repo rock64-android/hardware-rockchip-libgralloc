@@ -266,7 +266,7 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	}
 
 	int sync = 0;
-	ioctl(fd, RK_FBIOSET_CONFIG_DONE, &sync);
+	//ioctl(fd, RK_FBIOSET_CONFIG_DONE, &sync);
 
 	if (info.yres_virtual < info.yres * 2)
 	{
