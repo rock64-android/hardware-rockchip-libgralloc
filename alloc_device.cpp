@@ -142,7 +142,7 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 			case HAL_PIXEL_FORMAT_YCrCb_NV12:
 				stride = GRALLOC_ALIGN(w, 16);
 				byte_stride = stride;
-				size = h * (stride + GRALLOC_ALIGN(stride/2,16));
+				size = h * (stride * 2);
 				break;
 			case HAL_PIXEL_FORMAT_YCrCb_NV12_VIDEO:
 				if (property_get("sys.yuv.rgb.format", property, NULL) > 0) {
