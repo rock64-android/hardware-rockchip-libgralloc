@@ -262,7 +262,7 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	info.grayscale	    &= 0xff;
 	info.grayscale	    |= (info.xres<<8) + (info.yres<<20);
 	info.nonstd &= 0xffffff00;
-	info.nonstd |= HAL_PIXEL_FORMAT_RGBA_8888;
+	info.nonstd |= HAL_PIXEL_FORMAT_RGBX_8888;
 #endif
 
 	/*
