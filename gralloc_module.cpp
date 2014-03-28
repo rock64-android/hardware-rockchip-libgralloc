@@ -50,6 +50,7 @@ static int gralloc_device_open(const hw_module_t* module, const char* name, hw_d
 
 static int gralloc_register_buffer(gralloc_module_t const* module, buffer_handle_t handle)
 {
+
 	if (private_handle_t::validate(handle) < 0)
 	{
 		AERR("Registering invalid buffer 0x%x, returning error", (int)handle);
@@ -60,7 +61,7 @@ static int gralloc_register_buffer(gralloc_module_t const* module, buffer_handle
 	private_handle_t* hnd = (private_handle_t*)handle;
 	if (hnd->pid == getpid())
 	{
-		AERR("Unable to register handle 0x%x coming from different process: %d", (unsigned int)hnd, hnd->pid );
+		AWAR("Unable to register handle 0x%x coming from different process: %d", (unsigned int)hnd, hnd->pid );
 		return 0;
 	}
 
@@ -124,7 +125,7 @@ static int gralloc_unregister_buffer(gralloc_module_t const* module, buffer_hand
 	}
 	else
 	{
-		AERR( "Trying to unregister buffer 0x%x from process %d that was not created in current process: %d", (unsigned int)hnd, hnd->pid, getpid());
+		AWAR( "Trying to unregister buffer 0x%x from process %d that was not created in current process: %d", (unsigned int)hnd, hnd->pid, getpid());
 	}
 
 	return 0;
