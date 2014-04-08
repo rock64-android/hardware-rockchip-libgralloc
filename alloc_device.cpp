@@ -140,10 +140,12 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 				 * Additional custom formats can be added here.
 				 */
 			case HAL_PIXEL_FORMAT_YCrCb_NV12:
+			case HAL_PIXEL_FORMAT_YCrCb_NV12_VIDEO:
 				stride = GRALLOC_ALIGN(w, 16);
 				byte_stride = stride;
 				size = h * (stride * 2);
 				break;
+			#if 0	
 			case HAL_PIXEL_FORMAT_YCrCb_NV12_VIDEO:
 				if (property_get("sys.yuv.rgb.format", property, NULL) > 0) {
 					fmtflag = atoi(property);
@@ -156,6 +158,7 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 				byte_stride = stride*bpp;
 				size = h * byte_stride;
 				break;
+			#endif	
 			default:
 				return -EINVAL;
 		}
