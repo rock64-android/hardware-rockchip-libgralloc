@@ -59,12 +59,13 @@ int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_hand
 	 */
 	default:
 		//heap_mask = ION_HEAP_SYSTEM_MASK;
-        heap_mask = ION_HEAP(ION_CMA_HEAP_ID);	
+        heap_mask = ION_HEAP(ION_HEAP_SYSTEM_MASK);	
 		break;
 	}
 
 	int ion_flags = 0;
 
+    #if 0
 	if ( (usage & GRALLOC_USAGE_SW_READ_MASK) == GRALLOC_USAGE_SW_READ_OFTEN )
 	{
 		//ion_flags = ION_FLAG_CACHED | ION_FLAG_CACHED_NEEDS_SYNC; // Temporarily ignore,for ion dont supprot
@@ -75,10 +76,10 @@ int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_hand
         heap_mask = ION_HEAP(ION_SYSTEM_HEAP_ID); // force Brower GraphicBufferAllocator to logics memery
         //ALOGD("force Brower GraphicBufferAllocator to logics memery");
     }
-
+    #endif
+    
    // ALOGD("[%d,%d,%d]",m->ion_client, size, ion_flags);
-	ret = ion_alloc(m->ion_client, size, 0, /*ION_HEAP_SYSTEM_MASK*/ /*2*/heap_mask,
-	                ion_flags, &ion_hnd );
+	ret = ion_alloc(m->ion_client, size, 0, heap_mask, ion_flags, &ion_hnd );
 
 	if ( ret != 0) 
 	{
