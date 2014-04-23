@@ -59,7 +59,7 @@ int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_hand
 	 */
 	default:
 		//heap_mask = ION_HEAP_SYSTEM_MASK;
-        heap_mask = ION_HEAP(ION_HEAP_SYSTEM_MASK);	
+        heap_mask = ION_HEAP(ION_VMALLOC_HEAP_ID);	
 		break;
 	}
 
