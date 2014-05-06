@@ -156,6 +156,14 @@ static int fb_post(struct framebuffer_device_t* dev, buffer_handle_t buffer)
         fb_info.win_par[0].area_par[0].xvir = hnd->width;
         fb_info.win_par[0].area_par[0].yvir = hnd->height;
         ioctl(m->framebuffer->fd, RK_FBIOSET_CONFIG_DONE, &fb_info);
+
+        for(int k=0;k<RK_MAX_BUF_NUM;k++)
+        {
+            if(fb_info.rel_fence_fd[k]!= -1)
+                close(fb_info.rel_fence_fd[k]);
+        }
+        if(fb_info.ret_fence_fd != -1)
+            close(fb_info.ret_fence_fd);
 		
 		//ioctl(m->framebuffer->fd, RK_FBIOSET_CONFIG_DONE, &sync);
 		gralloc_mali_vsync_report(MALI_VSYNC_EVENT_END_WAIT);
