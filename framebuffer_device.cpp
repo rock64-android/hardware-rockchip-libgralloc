@@ -377,7 +377,7 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	{
 		return -errno;
 	}
-
+    finfo.line_length = GRALLOC_ALIGN(info.xres,16)*info.bits_per_pixel/8;
 	module->flags = flags;
 	module->info = info;
 	module->finfo = finfo;
