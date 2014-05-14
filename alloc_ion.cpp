@@ -35,6 +35,7 @@
 #include <linux/ion.h>
 #include <ion/ion.h>
 #include <ion/rockchip_ion.h>
+extern int g_MMU_stat;
 int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle)
 {
 	private_module_t* m = reinterpret_cast<private_module_t*>(dev->common.module);
@@ -59,7 +60,11 @@ int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_hand
 	 */
 	default:
 		//heap_mask = ION_HEAP_SYSTEM_MASK;
-        heap_mask = ION_HEAP(ION_HEAP_SYSTEM_MASK);	
+		//ALOGD("g_MMU_stat =%d",g_MMU_stat);
+		if(g_MMU_stat)
+            heap_mask = ION_HEAP(ION_VMALLOC_HEAP_ID);	  
+		else
+            heap_mask = ION_HEAP(ION_HEAP_SYSTEM_MASK);	
 		break;
 	}
 

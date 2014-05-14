@@ -39,7 +39,8 @@
 
 // numbers of buffers for page flipping
 #define NUM_BUFFERS NUM_FB_BUFFERS 
-
+#define RK_FBIOGET_IOMMU_STA    0x4632
+int g_MMU_stat = 0;
 enum
 {
 	PAGE_FLIP = 0x00000001,
@@ -231,6 +232,8 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	{
 		return -errno;
 	}
+	ioctl(fd, RK_FBIOGET_IOMMU_STA, &g_MMU_stat);
+
 
 	info.reserved[0] = 0;
 	info.reserved[1] = 0;
