@@ -83,8 +83,14 @@ static int gralloc_alloc_framebuffer_locked(alloc_device_t* dev, size_t size, in
 	}
 
 	// The entire framebuffer memory is already mapped, now create a buffer object for parts of this memory
-	private_handle_t* hnd = new private_handle_t(private_handle_t::PRIV_FLAGS_FRAMEBUFFER, size, vaddr,
+	private_handle_t* hnd = new private_handle_t(private_handle_t::PRIV_FLAGS_FRAMEBUFFER, bufferSize, vaddr,
 	                                             0, dup(m->framebuffer->fd), vaddr - m->framebuffer->base);
+#ifdef GRALLOC_16_BITS
+	/* match the framebuffer format */
+	hnd->format = HAL_PIXEL_FORMAT_RGB_565;
+#endif
+	hnd->stride = m->finfo.line_length / (m->info.bits_per_pixel >> 3);
+	hnd->byte_stride = m->finfo.line_length;
 
 	/*
 	 * Perform allocator specific actions. If these fail we fall back to a regular buffer
@@ -189,6 +195,15 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 			return -EINVAL;
 		}
 		size_t bpr = GRALLOC_ALIGN(w * bpp, 64);
+
+		// force odd 64 align to improve ddr utilization for mali-t760
+		if(!(usage & GRALLOC_USAGE_HW_FB)) {
+		    if(((bpr/64)%2) == 0) {
+		        //ALOGD("[%d x %d: %d] + 64", w, h, bpp);
+		        bpr += 64;
+		    }
+		}
+
 		size = bpr * h;
 		byte_stride = bpr;
 		stride = bpr / bpp;
@@ -210,20 +225,12 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 		return err;
 	}
 
-#ifdef GRALLOC_16_BITS
-	/* match the framebuffer format */
-	if (usage & GRALLOC_USAGE_HW_FB)
-	{
-		format = HAL_PIXEL_FORMAT_RGB_565;
-	}
-#endif
-
 	private_handle_t *hnd = (private_handle_t *)*pHandle;
-	hnd->format = format;
 	hnd->width = w;
 	hnd->height = h;
-	hnd->stride = stride;
-	hnd->byte_stride = byte_stride;
+	if(!hnd->format)        hnd->format = format;
+	if(!hnd->stride)        hnd->stride = stride;
+	if(!hnd->byte_stride)   hnd->byte_stride = byte_stride;
 
 	int private_usage = usage & (GRALLOC_USAGE_PRIVATE_0 |
 	                             GRALLOC_USAGE_PRIVATE_1);
@@ -243,7 +250,7 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 		break;
 	}
 
-	*pStride = stride;
+	*pStride = hnd->stride;
 	return 0;
 }
 

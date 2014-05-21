@@ -201,6 +201,9 @@ struct private_handle_t
 		share_fd(-1),
 #endif
 		magic(sMagic),
+		format(0),
+		stride(0),
+		byte_stride(0),
 		flags(flags),
 		size(size),
 		base(base),
@@ -228,6 +231,9 @@ struct private_handle_t
 	private_handle_t(int flags, int size, int base, int lock_state):
 		share_fd(-1),
 		magic(sMagic),
+		format(0),
+		stride(0),
+		byte_stride(0),
 		flags(flags),
 		size(size),
 		base(base),
@@ -256,6 +262,9 @@ struct private_handle_t
 		share_fd(-1),
 #endif
 		magic(sMagic),
+		format(0),
+		stride(0),
+		byte_stride(0),
 		flags(flags),
 		size(size),
 		base(base),

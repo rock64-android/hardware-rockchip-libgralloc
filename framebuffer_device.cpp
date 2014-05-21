@@ -257,6 +257,8 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	info.blue.length    = 5;
 	info.transp.offset  = 0;
 	info.transp.length  = 0;
+	info.nonstd &= 0xffffff00;
+	info.nonstd |= HAL_PIXEL_FORMAT_RGB_565;
 #else
 	/*
 	 * Explicitly request 8/8/8
@@ -388,7 +390,6 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	{
 		return -errno;
 	}
-    finfo.line_length = GRALLOC_ALIGN(info.xres,16)*info.bits_per_pixel/8;
 	module->flags = flags;
 	module->info = info;
 	module->finfo = finfo;
