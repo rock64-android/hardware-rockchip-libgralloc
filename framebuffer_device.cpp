@@ -38,8 +38,9 @@
 #include "gralloc_helper.h"
 
 // numbers of buffers for page flipping
-#define NUM_BUFFERS NUM_FB_BUFFERS 
-#define RK_FBIOGET_IOMMU_STA    0x4632
+#define NUM_BUFFERS                 NUM_FB_BUFFERS
+#define RK_FBIOGET_IOMMU_STA        0x4632
+#define RK_FBIOSET_CLEAR_FB         0x4633
 int g_MMU_stat = 0;
 enum
 {
@@ -242,8 +243,6 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	info.yoffset = 0;
 	info.activate = FB_ACTIVATE_NOW;
 
-	int fb_per_pixel_ori = info.bits_per_pixel;
-
 #ifdef GRALLOC_16_BITS
 	/*
 	 * Explicitly request 5/6/5
@@ -283,17 +282,7 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	 */
 	info.yres_virtual = info.yres * NUM_BUFFERS;
 
-	/*
-	 * map the framebuffer
-	 */
-	size_t fbSize = round_up_to_page_size(finfo.line_length * info.yres_virtual * info.bits_per_pixel / fb_per_pixel_ori);
-	void* vaddr = mmap(0, fbSize, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
-	if (vaddr == MAP_FAILED) 
-	{
-		AERR( "Error mapping the framebuffer (%s)", strerror(errno) );
-		return -errno;
-	}
-	memset(vaddr, 0, fbSize);
+	ioctl(fd, RK_FBIOSET_CLEAR_FB, NULL);
 
 	uint32_t flags = PAGE_FLIP;
 	if (ioctl(fd, FBIOPUT_VSCREENINFO, &info) == -1)
@@ -390,6 +379,19 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	{
 		return -errno;
 	}
+
+	/*
+	 * map the framebuffer
+	 */
+	size_t fbSize = round_up_to_page_size(finfo.line_length * info.yres_virtual);
+	void* vaddr = mmap(0, fbSize, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+	if (vaddr == MAP_FAILED)
+	{
+		AERR( "Error mapping the framebuffer (%s)", strerror(errno) );
+		return -errno;
+	}
+	memset(vaddr, 0, fbSize);
+
 	module->flags = flags;
 	module->info = info;
 	module->finfo = finfo;
