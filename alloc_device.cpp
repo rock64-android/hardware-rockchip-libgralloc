@@ -200,7 +200,7 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 		if(!(usage & GRALLOC_USAGE_HW_FB)) {
 		    if(((bpr/64)%2) == 0) {
 		        //ALOGD("[%d x %d: %d] + 64", w, h, bpp);
-		        bpr += 64;
+		        //bpr += 64;
 		    }
 		}
 
