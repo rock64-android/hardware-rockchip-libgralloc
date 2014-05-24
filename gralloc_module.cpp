@@ -163,7 +163,7 @@ static int gralloc_unlock(gralloc_module_t const* module, buffer_handle_t handle
 
 	if (hnd->flags & (private_handle_t::PRIV_FLAGS_USES_UMP |
 	                  private_handle_t::PRIV_FLAGS_USES_ION)
-	    && hnd->writeOwner)
+	    /*&& hnd->writeOwner*/)
 	{
 		gralloc_backend_sync(hnd);
 	}
