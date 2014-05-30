@@ -159,7 +159,7 @@ struct private_handle_t
 	int     lockState;
 	int     writeOwner;
 	int     pid;
-    int     type;
+
 	mali_gralloc_yuv_info yuv_info;
 
 	// Following members is for framebuffer only
@@ -191,7 +191,7 @@ struct private_handle_t
 	 * number of integers that are conditionally included. Similar considerations apply
 	 * to the number of fds.
 	 */
-	static const int sNumInts = 16 + GRALLOC_ARM_NUM_INTS;
+	static const int sNumInts = 15 + GRALLOC_ARM_NUM_INTS;
 	static const int sNumFds = GRALLOC_ARM_NUM_FDS;
 	static const int sMagic = 0x3141592;
 
