@@ -183,8 +183,28 @@ static int fb_post(struct framebuffer_device_t* dev, buffer_handle_t buffer)
 		m->base.lock(&m->base, buffer, GRALLOC_USAGE_SW_READ_RARELY, 
 				0, 0, m->info.xres, m->info.yres, &buffer_vaddr);
 
-		memcpy(fb_vaddr, buffer_vaddr, m->finfo.line_length * m->info.yres);
+		// If buffer's alignment match framebuffer alignment we can do a direct copy.
+		// If not we must fallback to do an aligned copy of each line.
+		if ( hnd->byte_stride == (int)m->finfo.line_length )
+		{
+			memcpy(fb_vaddr, buffer_vaddr, m->finfo.line_length * m->info.yres);
+		}
+		else
+		{
+			uintptr_t fb_offset = 0;
+			uintptr_t buffer_offset = 0;
+			unsigned int i;
 
+			for (i = 0; i < m->info.yres; i++)
+			{
+				memcpy((void *)((uintptr_t)fb_vaddr + fb_offset),
+					   (void *)((uintptr_t)buffer_vaddr + buffer_offset),
+					   m->finfo.line_length);
+
+				fb_offset += m->finfo.line_length;
+				buffer_offset += hnd->byte_stride;
+			}
+		}
 		m->base.unlock(&m->base, buffer); 
 		m->base.unlock(&m->base, m->framebuffer); 
 	}
@@ -258,6 +278,7 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	info.transp.length  = 0;
 	info.nonstd &= 0xffffff00;
 	info.nonstd |= HAL_PIXEL_FORMAT_RGB_565;
+	//info.xres_virtual = GRALLOC_ODD_ALIGN(info.xres*2, 64) / 2;
 #else
 	/*
 	 * Explicitly request 8/8/8
@@ -275,6 +296,7 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	info.grayscale	    |= (info.xres<<8) + (info.yres<<20);
 	info.nonstd &= 0xffffff00;
 	info.nonstd |= HAL_PIXEL_FORMAT_RGBX_8888;
+	//info.xres_virtual = GRALLOC_ODD_ALIGN(info.xres*4, 64) / 4;
 #endif
 
 	/*

@@ -50,7 +50,6 @@ static int gralloc_device_open(const hw_module_t* module, const char* name, hw_d
 
 static int gralloc_register_buffer(gralloc_module_t const* module, buffer_handle_t handle)
 {
-
 	if (private_handle_t::validate(handle) < 0)
 	{
 		AERR("Registering invalid buffer 0x%x, returning error", (int)handle);
@@ -59,15 +58,19 @@ static int gralloc_register_buffer(gralloc_module_t const* module, buffer_handle
 
 	// if this handle was created in this process, then we keep it as is.
 	private_handle_t* hnd = (private_handle_t*)handle;
+
 	if (hnd->pid == getpid())
 	{
-		AWAR("Unable to register handle 0x%x coming from different process: %d", (unsigned int)hnd, hnd->pid );
-		return 0;
+		// If the handle is created and registered in the same process this is valid,
+		// but it could also be that application is registering twice which is illegal.
+		AWAR("Registering handle 0x%x coming from the same process: %d.", (unsigned int)hnd, hnd->pid);
 	}
 
 	int retval = -EINVAL;
 
 	pthread_mutex_lock(&s_map_lock);
+
+	hnd->pid = getpid();
 
 	if (hnd->flags & private_handle_t::PRIV_FLAGS_FRAMEBUFFER) 
 	{
@@ -103,7 +106,7 @@ static int gralloc_unregister_buffer(gralloc_module_t const* module, buffer_hand
 	{
 		AERR( "Can't unregister buffer 0x%x as it is a framebuffer", (unsigned int)handle );
 	}
-	else if (hnd->pid != getpid()) // never unmap buffers that were not created in this process
+	else if (hnd->pid == getpid()) // never unmap buffers that were not created in this process
 	{
 		pthread_mutex_lock(&s_map_lock);
 
@@ -125,7 +128,7 @@ static int gralloc_unregister_buffer(gralloc_module_t const* module, buffer_hand
 	}
 	else
 	{
-		AWAR( "Trying to unregister buffer 0x%x from process %d that was not created in current process: %d", (unsigned int)hnd, hnd->pid, getpid());
+		AERR( "Trying to unregister buffer 0x%x from process %d that was not created in current process: %d", (unsigned int)hnd, hnd->pid, getpid());
 	}
 
 	return 0;
@@ -163,7 +166,7 @@ static int gralloc_unlock(gralloc_module_t const* module, buffer_handle_t handle
 
 	if (hnd->flags & (private_handle_t::PRIV_FLAGS_USES_UMP |
 	                  private_handle_t::PRIV_FLAGS_USES_ION)
-	    /*&& hnd->writeOwner*/)
+	    && hnd->writeOwner)
 	{
 		gralloc_backend_sync(hnd);
 	}

@@ -160,7 +160,11 @@ void alloc_backend_alloc_free(private_handle_t const* hnd, private_module_t* m)
 	}
 	else if ( hnd->flags & private_handle_t::PRIV_FLAGS_USES_ION )
 	{
-		if ( 0 != munmap( (void*)hnd->base, hnd->size ) ) AERR( "Failed to munmap handle 0x%x", (unsigned int)hnd );
+		/* Buffer might be unregistered already so we need to assure we have a valid handle*/
+		if ( 0 != hnd->base )
+		{
+			if ( 0 != munmap( (void*)hnd->base, hnd->size ) ) AERR( "Failed to munmap handle 0x%x", (unsigned int)hnd );
+		}
 		close( hnd->share_fd );
 		if ( 0 != ion_free( m->ion_client, hnd->ion_hnd ) ) AERR( "Failed to ion_free( ion_client: %d ion_hnd: %p )", m->ion_client, hnd->ion_hnd );
 		memset( (void*)hnd, 0, sizeof( *hnd ) );
