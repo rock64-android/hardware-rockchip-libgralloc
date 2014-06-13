@@ -227,6 +227,8 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 	private_handle_t *hnd = (private_handle_t *)*pHandle;
 	hnd->width = w;
 	hnd->height = h;
+	hnd->video_width = 0;
+	hnd->video_height = 0;
 	if(!hnd->format)        hnd->format = format;
 	if(!hnd->stride)        hnd->stride = stride;
 	if(!hnd->byte_stride)   hnd->byte_stride = byte_stride;
