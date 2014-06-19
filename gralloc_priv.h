@@ -32,6 +32,7 @@
 #include <utils/Log.h>
 
 #define MALI_ION    1
+#define GET_VPU_INTO_FROM_HEAD      0 //zxl: 0:get vpu info from head of handle base  1:get vpu info from end of handle base
 
 #if MALI_ION == 1
 #define GRALLOC_ARM_UMP_MODULE 0
@@ -179,8 +180,10 @@ struct private_handle_t
 	int     video_addr;
 	int     video_width;
 	int     video_height;
+	int     video_disp_width;
+	int     video_disp_height;
 
-#define GRALLOC_ARM_NUM_INTS (2+3)
+#define GRALLOC_ARM_NUM_INTS (2+5)
 #endif
 
 #ifdef __cplusplus

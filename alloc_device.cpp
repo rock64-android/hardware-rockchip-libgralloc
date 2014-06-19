@@ -36,6 +36,10 @@
 #include <cutils/properties.h>
 #include <stdlib.h>
 
+
+//zxl:for vpu info
+#include "../libon2/vpu_global.h"
+
 static int gralloc_alloc_framebuffer_locked(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle)
 {
 	private_module_t* m = reinterpret_cast<private_module_t*>(dev->common.module);
@@ -149,7 +153,12 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 			case HAL_PIXEL_FORMAT_YCrCb_NV12_VIDEO:
 				stride = GRALLOC_ALIGN(w, 16);
 				byte_stride = stride;
-				size = h * (stride * 2);
+#if GET_VPU_INTO_FROM_HEAD
+                size = h * (stride * 2);
+#else
+				//zxl:add tVPU_FRAME at the end of allocated buffer
+				size = h * (stride * 2) + sizeof(tVPU_FRAME);
+#endif
 				break;
 			#if 0	
 			case HAL_PIXEL_FORMAT_YCrCb_NV12_VIDEO:
