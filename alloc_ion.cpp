@@ -45,6 +45,7 @@ int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_hand
 	int ret;
 	unsigned int heap_mask;
     int Ion_type;
+    bool Ishwc = false;//
 	/*
 	 * The following switch statement is intended to support the use of
 	 * platform specific ION heaps using the gralloc private usage
@@ -75,7 +76,8 @@ int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_hand
 	}
 
 	int ion_flags = 0;
-
+    if(usage == (GRALLOC_USAGE_HW_COMPOSER|GRALLOC_USAGE_HW_RENDER))
+        Ishwc = true;
     #if 0
 	if ( (usage & GRALLOC_USAGE_SW_READ_MASK) == GRALLOC_USAGE_SW_READ_OFTEN )
 	{
@@ -88,11 +90,9 @@ int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_hand
         //ALOGD("force Brower GraphicBufferAllocator to logics memery");
     }
     #endif
-    
-    //ALOGD("[%d,%d,%d],usage=%x",m->ion_client, size, ion_flags,usage);
+    ALOGV("[%d,%d,%d],usage=%x",m->ion_client, size, ion_flags,usage);   
 	ret = ion_alloc(m->ion_client, size, 0, heap_mask, ion_flags, &ion_hnd );
-
-	if ( ret != 0) 
+	if ( ret != 0 && !Ishwc) 
 	{
 	    if( heap_mask = ION_HEAP(ION_HEAP_SYSTEM_MASK))
 	    {
