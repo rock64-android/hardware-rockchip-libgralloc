@@ -106,7 +106,7 @@ int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_hand
         	    }
         	    else
         	    {
-        	        ALOGD("Force to VMALLOC sucess");
+        	        ALOGD("Force to VMALLOC sucess !");
         	        Ion_type = 1;
         	    }        	            	    
         	}
@@ -143,6 +143,10 @@ int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_hand
 		hnd->ion_hnd = ion_hnd;
 		hnd->type = Ion_type;
 		*pHandle = hnd;
+		if(hnd->type== 1)
+		{
+		    ALOGW(" Debugmem The fd=%d, in vmalloc !!!! Ishwc=%d",hnd->share_fd,Ishwc);
+		}
 		return 0;
 	}
 	else
