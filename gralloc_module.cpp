@@ -29,12 +29,17 @@
 #include "framebuffer_device.h"
 
 #include "gralloc_module_allocator_specific.h"
+#include <cutils/properties.h>
+
+#define RK_GRALLOC_VERSION "1.000"
 
 static pthread_mutex_t s_map_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static int gralloc_device_open(const hw_module_t* module, const char* name, hw_device_t** device)
 {
 	int status = -EINVAL;
+
+    property_set("sys.ggralloc.version", RK_GRALLOC_VERSION);
 
 	if (!strcmp(name, GRALLOC_HARDWARE_GPU0))
 	{
