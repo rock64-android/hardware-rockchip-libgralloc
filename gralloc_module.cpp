@@ -31,15 +31,31 @@
 #include "gralloc_module_allocator_specific.h"
 #include <cutils/properties.h>
 
-#define RK_GRALLOC_VERSION "1.000"
+#include <fcntl.h>
+
+#define RK_FBIOGET_IOMMU_STA        0x4632
+
+#define RK_GRALLOC_VERSION "1.001"
 
 static pthread_mutex_t s_map_lock = PTHREAD_MUTEX_INITIALIZER;
+int g_MMU_stat = 0;
 
 static int gralloc_device_open(const hw_module_t* module, const char* name, hw_device_t** device)
 {
 	int status = -EINVAL;
-
+    int fd;
     property_set("sys.ggralloc.version", RK_GRALLOC_VERSION);
+
+    fd = open("/dev/graphics/fb0", O_RDONLY, 0);
+    if(fd > 0)
+    {
+	    ioctl(fd, RK_FBIOGET_IOMMU_STA, &g_MMU_stat);
+	    close(fd);
+    }
+    else
+    {
+        ALOGE("gralloc_debug fb0 open err in gralloc_device_open!");
+    }
 
 	if (!strcmp(name, GRALLOC_HARDWARE_GPU0))
 	{
@@ -49,6 +65,7 @@ static int gralloc_device_open(const hw_module_t* module, const char* name, hw_d
 	{
 		status = framebuffer_device_open(module, name, device);
 	}
+
 
 	return status;
 }
