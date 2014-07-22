@@ -76,7 +76,7 @@ int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_hand
 	}
 
 	int ion_flags = 0;
-    if(usage == (GRALLOC_USAGE_HW_COMPOSER|GRALLOC_USAGE_HW_RENDER))
+    if(usage == (GRALLOC_USAGE_HW_COMPOSER|GRALLOC_USAGE_HW_RENDER|GRALLOC_USAGE_HW_VIDEO_ENCODER))
         Ishwc = true;
     #if 0
 	if ( (usage & GRALLOC_USAGE_SW_READ_MASK) == GRALLOC_USAGE_SW_READ_OFTEN )
