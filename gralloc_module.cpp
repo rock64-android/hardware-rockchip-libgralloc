@@ -35,7 +35,7 @@
 
 #define RK_FBIOGET_IOMMU_STA        0x4632
 
-#define RK_GRALLOC_VERSION "1.001"
+#define RK_GRALLOC_VERSION "1.0.1"
 
 static pthread_mutex_t s_map_lock = PTHREAD_MUTEX_INITIALIZER;
 int g_MMU_stat = 0;
