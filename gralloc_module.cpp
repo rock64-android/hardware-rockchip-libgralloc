@@ -29,14 +29,20 @@
 #include "framebuffer_device.h"
 
 #include "gralloc_module_allocator_specific.h"
+
+#if MALI_AFBC_GRALLOC == 1
+#include "gralloc_buffer_priv.h"
+#endif
+
+#include "format_chooser.h"
+
 #include <cutils/properties.h>
 
 #include <fcntl.h>
 
 #define RK_FBIOGET_IOMMU_STA        0x4632
 
-#define RK_GRALLOC_VERSION "1.0.1"
-
+#define RK_GRALLOC_VERSION "1.001"
 static pthread_mutex_t s_map_lock = PTHREAD_MUTEX_INITIALIZER;
 int g_MMU_stat = 0;
 
@@ -47,25 +53,25 @@ static int gralloc_device_open(const hw_module_t* module, const char* name, hw_d
     property_set("sys.ggralloc.version", RK_GRALLOC_VERSION);
 
     fd = open("/dev/graphics/fb0", O_RDONLY, 0);
+    ALOGD("gralloc_device_open new neiw fd=%d",fd);
     if(fd > 0)
     {
 	    ioctl(fd, RK_FBIOGET_IOMMU_STA, &g_MMU_stat);
+        ALOGD("g_MMU_stat=%d",g_MMU_stat);
 	    close(fd);
     }
     else
     {
         ALOGE("gralloc_debug fb0 open err in gralloc_device_open!");
     }
-
-	if (!strcmp(name, GRALLOC_HARDWARE_GPU0))
+	if (!strncmp(name, GRALLOC_HARDWARE_GPU0, MALI_GRALLOC_HARDWARE_MAX_STR_LEN))
 	{
 		status = alloc_device_open(module, name, device);
 	}
-	else if (!strcmp(name, GRALLOC_HARDWARE_FB0))
+	else if (!strncmp(name, GRALLOC_HARDWARE_FB0, MALI_GRALLOC_HARDWARE_MAX_STR_LEN))
 	{
 		status = framebuffer_device_open(module, name, device);
 	}
-
 
 	return status;
 }
@@ -74,7 +80,7 @@ static int gralloc_register_buffer(gralloc_module_t const* module, buffer_handle
 {
 	if (private_handle_t::validate(handle) < 0)
 	{
-		AERR("Registering invalid buffer 0x%x, returning error", (int)handle);
+		AERR("Registering invalid buffer %p, returning error", handle);
 		return -EINVAL;
 	}
 
@@ -85,7 +91,7 @@ static int gralloc_register_buffer(gralloc_module_t const* module, buffer_handle
 	{
 		// If the handle is created and registered in the same process this is valid,
 		// but it could also be that application is registering twice which is illegal.
-		AWAR("Registering handle 0x%x coming from the same process: %d.", (unsigned int)hnd, hnd->pid);
+		AWAR("Registering handle %p coming from the same process: %d.", hnd, hnd->pid);
 	}
 
 	int retval = -EINVAL;
@@ -96,7 +102,7 @@ static int gralloc_register_buffer(gralloc_module_t const* module, buffer_handle
 
 	if (hnd->flags & private_handle_t::PRIV_FLAGS_FRAMEBUFFER) 
 	{
-		AERR( "Can't register buffer 0x%x as it is a framebuffer", (unsigned int)handle );
+		AERR( "Can't register buffer %p as it is a framebuffer", handle );
 	}
 	else if (hnd->flags & (private_handle_t::PRIV_FLAGS_USES_UMP |
 	                       private_handle_t::PRIV_FLAGS_USES_ION))
@@ -116,7 +122,7 @@ static int gralloc_unregister_buffer(gralloc_module_t const* module, buffer_hand
 {
 	if (private_handle_t::validate(handle) < 0)
 	{
-		AERR("unregistering invalid buffer 0x%x, returning error", (int)handle);
+		AERR("unregistering invalid buffer %p, returning error", handle);
 		return -EINVAL;
 	}
 
@@ -126,7 +132,7 @@ static int gralloc_unregister_buffer(gralloc_module_t const* module, buffer_hand
 
 	if (hnd->flags & private_handle_t::PRIV_FLAGS_FRAMEBUFFER)
 	{
-		AERR( "Can't unregister buffer 0x%x as it is a framebuffer", (unsigned int)handle );
+		AERR( "Can't unregister buffer %p as it is a framebuffer", handle );
 	}
 	else if (hnd->pid == getpid()) // never unmap buffers that were not created in this process
 	{
@@ -142,6 +148,17 @@ static int gralloc_unregister_buffer(gralloc_module_t const* module, buffer_hand
 			AERR("Unregistering unknown buffer is not supported. Flags = %d", hnd->flags);
 		}
 
+#if MALI_AFBC_GRALLOC == 1
+		/*
+		 * Close shared attribute region file descriptor. It might seem strange to "free"
+		 * this here since this can happen in a client process, but free here is nothing
+		 * but unmapping and closing the duplicated file descriptor. The original ashmem
+		 * fd instance is still open until alloc_device_free() is called. Even sharing
+		 * of gralloc buffers within the same process should have fds dup:ed.
+		 */
+		gralloc_buffer_attr_free( hnd );
+
+#endif
 		hnd->base = 0;
 		hnd->lockState  = 0;
 		hnd->writeOwner = 0;
@@ -150,7 +167,7 @@ static int gralloc_unregister_buffer(gralloc_module_t const* module, buffer_hand
 	}
 	else
 	{
-		AERR( "Trying to unregister buffer 0x%x from process %d that was not created in current process: %d", (unsigned int)hnd, hnd->pid, getpid());
+		AERR( "Trying to unregister buffer %p from process %d that was not created in current process: %d", hnd, hnd->pid, getpid());
 	}
 
 	return 0;
@@ -160,7 +177,7 @@ static int gralloc_lock(gralloc_module_t const* module, buffer_handle_t handle, 
 {
 	if (private_handle_t::validate(handle) < 0)
 	{
-		AERR("Locking invalid buffer 0x%x, returning error", (int)handle );
+		AERR("Locking invalid buffer %p, returning error", handle );
 		return -EINVAL;
 	}
 
@@ -180,7 +197,7 @@ static int gralloc_unlock(gralloc_module_t const* module, buffer_handle_t handle
 {
 	if (private_handle_t::validate(handle) < 0)
 	{
-		AERR( "Unlocking invalid buffer 0x%x, returning error", (int)handle );
+		AERR( "Unlocking invalid buffer %p, returning error", handle );
 		return -EINVAL;
 	}
 
@@ -234,7 +251,10 @@ private_module_t::private_module_t()
 	INIT_ZERO(finfo);
 	xdpi = 0.0f; 
 	ydpi = 0.0f; 
-	fps = 0.0f; 
+	fps = 0.0f;
+	swapInterval = 1;
+
+	initialize_blk_conf();
 
 #undef INIT_ZERO
 };

@@ -4,7 +4,7 @@
  * Copyright (C) 2008 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * You may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
@@ -16,10 +16,16 @@
  * limitations under the License.
  */
 
-#include <hardware/hardware.h>
+#ifndef _GRALLOC_VSYNC_H_
+#define _GRALLOC_VSYNC_H_
 
-// Create a framebuffer device
-int framebuffer_device_open(hw_module_t const* module, const char* name, hw_device_t** device);
+struct framebuffer_device_t;
 
-// Initialize the framebuffer (must keep module lock before calling
-int init_frame_buffer_locked(struct private_module_t* module);
+/* Enables vsync interrupt. */
+int gralloc_vsync_enable(struct framebuffer_device_t* dev);
+/* Disables vsync interrupt. */
+int gralloc_vsync_disable(struct framebuffer_device_t* dev);
+/* Waits for the vsync interrupt. */
+int gralloc_wait_for_vsync(struct framebuffer_device_t* dev);
+
+#endif /* _GRALLOC_VSYNC_H_ */
