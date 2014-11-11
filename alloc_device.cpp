@@ -334,7 +334,7 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 #ifdef GRALLOC_16_BITS
 		format = HAL_PIXEL_FORMAT_RGB_565;
 #else
-		format = HAL_PIXEL_FORMAT_BGRA_8888;
+		format = HAL_PIXEL_FORMAT_RGBA_8888;
 #endif
 	}
 #endif
