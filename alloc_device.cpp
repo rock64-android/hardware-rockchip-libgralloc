@@ -296,6 +296,7 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 			break;
 	    case HAL_PIXEL_FORMAT_YCrCb_NV12:
 		case HAL_PIXEL_FORMAT_YCrCb_NV12_VIDEO:
+#if 0		
 			get_rgb_stride_and_size(w, h, 2, &pixel_stride, &byte_stride, &size, alloc_for_afbc );
 #if !GET_VPU_INTO_FROM_HEAD
 				//zxl:add tVPU_FRAME at the end of allocated buffer
@@ -306,7 +307,18 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 			 * Additional custom formats can be added here
 			 * and must fill the variables pixel_stride, byte_stride and size.
 			 */
-
+#else
+            if (!get_yv12_stride_and_size(w, h, &pixel_stride, &byte_stride, &size, alloc_for_afbc))
+			{
+				return -EINVAL;
+			}
+			size += w*h/2 ; // video dec need more buffer 
+#if !GET_VPU_INTO_FROM_HEAD
+				//zxl:add tVPU_FRAME at the end of allocated buffer
+				size = size + sizeof(tVPU_FRAME);
+#endif			
+			break;
+#endif
 		default:
 			return -EINVAL;
 	}
