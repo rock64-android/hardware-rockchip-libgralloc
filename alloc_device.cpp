@@ -270,6 +270,7 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 		case HAL_PIXEL_FORMAT_RGBA_8888:
 		case HAL_PIXEL_FORMAT_RGBX_8888:
 		case HAL_PIXEL_FORMAT_BGRA_8888:
+		case HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED:
 #if PLATFORM_SDK_VERSION >= 19
 		case HAL_PIXEL_FORMAT_sRGB_A_8888:
 		case HAL_PIXEL_FORMAT_sRGB_X_8888:
@@ -308,6 +309,7 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 			 * and must fill the variables pixel_stride, byte_stride and size.
 			 */
 #else
+           // ALOGD("get_yv12_stride_and_size fmt=%d",internal_format);
             if (!get_yv12_stride_and_size(w, h, &pixel_stride, &byte_stride, &size, alloc_for_afbc))
 			{
 				return -EINVAL;
