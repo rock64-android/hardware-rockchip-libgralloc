@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+#define ENABLE_DEBUG_LOG
+#include <log/custom_log.h>
+
 #include <errno.h>
 #include <pthread.h>
 
@@ -51,6 +54,12 @@ static int gralloc_device_open(const hw_module_t* module, const char* name, hw_d
 	int status = -EINVAL;
     int fd;
     property_set("sys.ggralloc.version", RK_GRALLOC_VERSION);
+
+    I("to open device '%s' in gralloc_module with ver '%s', built at '%s', on '%s'.",
+        name,
+        RK_GRALLOC_VERSION,
+        __TIME__,
+        __DATE__);
 
     fd = open("/dev/graphics/fb0", O_RDONLY, 0);
     ALOGD("gralloc_device_open new neiw fd=%d",fd);
