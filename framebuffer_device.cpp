@@ -112,7 +112,7 @@ static int fb_post(struct framebuffer_device_t* dev, buffer_handle_t buffer)
         memset(&fb_info,0,sizeof(fb_info));
 		
         unsigned int fboffset = hnd->offset;        
-        fb_info.win_par[0].data_format = hnd->format;
+        fb_info.win_par[0].area_par[0].data_format = hnd->format;
         fb_info.win_par[0].win_id = 0;
         fb_info.win_par[0].z_order = 0;
         fb_info.win_par[0].area_par[0].ion_fd = hnd->share_fd;
