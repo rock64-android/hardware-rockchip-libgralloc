@@ -38,7 +38,7 @@
 
 
 //zxl:for vpu info
-#include "../libon2/vpu_global.h"
+#include "../librkvpu/vpu_global.h"
 #if MALI_AFBC_GRALLOC == 1
 #include "gralloc_buffer_priv.h"
 #endif
