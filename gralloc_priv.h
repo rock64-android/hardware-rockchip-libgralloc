@@ -39,7 +39,7 @@
 #if MALI_ION == 1
 #define GRALLOC_ARM_UMP_MODULE 0
 #define GRALLOC_ARM_DMA_BUF_MODULE 1
-#if 0 /* new libion */
+#if 1 /* new libion */
 typedef int ion_user_handle_t;
 #define ION_INVALID_HANDLE 0
 #else

@@ -34,7 +34,7 @@
 
 #include <linux/ion.h>
 #include <ion/ion.h>
-#include <ion/rockchip_ion.h>
+#include <linux/rockchip_ion.h>
 extern int g_MMU_stat;
 int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle)
 {
