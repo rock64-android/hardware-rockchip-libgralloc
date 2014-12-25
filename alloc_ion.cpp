@@ -64,12 +64,12 @@ int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_hand
 		//ALOGD("g_MMU_stat =%d",g_MMU_stat); 
 		if(g_MMU_stat)
 		{
-            heap_mask = ION_HEAP(ION_VMALLOC_HEAP_ID);	  
+            heap_mask = ION_HEAP(ION_VMALLOC_HEAP_ID);
             Ion_type = 1;
         }    
 		else
 		{
-            heap_mask = ION_HEAP(ION_HEAP_SYSTEM_MASK);	
+            heap_mask = ION_HEAP(ION_CMA_HEAP_ID);
             Ion_type = 0;
         }    
 		break;
@@ -93,7 +93,7 @@ int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_hand
 	ret = ion_alloc(m->ion_client, size, 0, heap_mask, ion_flags, &ion_hnd );
 	if ( ret != 0 ) 
 	{
-	    if( heap_mask == ION_HEAP(ION_HEAP_SYSTEM_MASK) && !Ishwc)
+	    if( heap_mask == ION_HEAP(ION_CMA_HEAP_ID) && !Ishwc)
 	    {
 	        heap_mask = ION_HEAP(ION_VMALLOC_HEAP_ID);	 
         	ret = ion_alloc(m->ion_client, size, 0, heap_mask, ion_flags, &ion_hnd );
