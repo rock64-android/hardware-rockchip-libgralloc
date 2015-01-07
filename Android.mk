@@ -17,6 +17,8 @@
 
 LOCAL_PATH := $(call my-dir)
 
+ifneq ($(strip $(TARGET_BOARD_PLATFORM)), rk3368)
+
 MALI_ARCHITECTURE_UTGARD?=0
 MALI_ION?=1
 GRALLOC_VSYNC_BACKEND?=default
@@ -99,3 +101,5 @@ LOCAL_SRC_FILES := \
 	gralloc_vsync_${GRALLOC_VSYNC_BACKEND}.cpp
 
 include $(BUILD_SHARED_LIBRARY)
+
+endif
