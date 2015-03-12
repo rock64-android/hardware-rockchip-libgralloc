@@ -306,12 +306,11 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	int refreshRate = 0;
 	if ( info.pixclock > 0 )
 	{
-		refreshRate = 1000000000000000LLU /
-		(
-			uint64_t( info.upper_margin + info.lower_margin + info.yres + info.hsync_len )
-			* ( info.left_margin  + info.right_margin + info.xres + info.vsync_len )
-			* info.pixclock
-		);
+		refreshRate =
+            1000000000000000LLU 
+            / ( uint64_t( info.vsync_len + info.upper_margin + info.lower_margin + info.yres )  // 纵向 pixel_num.
+                * ( info.hsync_len + info.left_margin  + info.right_margin + info.xres )        // 横向. 
+                * info.pixclock );                                                              // pixel_clock.
 	}
 	else
 	{
