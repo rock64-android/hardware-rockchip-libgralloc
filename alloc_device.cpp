@@ -296,6 +296,7 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 			}
 			break;
 	    case HAL_PIXEL_FORMAT_YCrCb_NV12:
+	    case HAL_PIXEL_FORMAT_YCrCb_NV12_10:
 		case HAL_PIXEL_FORMAT_YCrCb_NV12_VIDEO:
 #if 0		
 			get_rgb_stride_and_size(w, h, 2, &pixel_stride, &byte_stride, &size, alloc_for_afbc );
