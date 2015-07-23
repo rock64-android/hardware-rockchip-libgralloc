@@ -33,19 +33,18 @@
 #include <utils/Log.h>
 
 #include "format_chooser.h"
-#define MALI_ION    1
-#define GET_VPU_INTO_FROM_HEAD      0 //zxl: 0:get vpu info from head of handle base  1:get vpu info from end of handle base
 
 #if MALI_ION == 1
 #define GRALLOC_ARM_UMP_MODULE 0
 #define GRALLOC_ARM_DMA_BUF_MODULE 1
-#if 1 /* new libion */
+#if !defined(GRALLOC_OLD_ION_API)
+/* new libion */
 typedef int ion_user_handle_t;
 #define ION_INVALID_HANDLE 0
 #else
 typedef struct ion_handle *ion_user_handle_t;
 #define ION_INVALID_HANDLE NULL
-#endif /* new libion */
+#endif /* GRALLOC_OLD_ION_API */
 #else
 #define GRALLOC_ARM_UMP_MODULE 1
 #define GRALLOC_ARM_DMA_BUF_MODULE 0
@@ -81,7 +80,7 @@ struct fb_dmabuf_export
  * 8 is big enough for "gpu0" & "fb0" currently
  */
 #define MALI_GRALLOC_HARDWARE_MAX_STR_LEN 8
-#define NUM_FB_BUFFERS 3
+#define NUM_FB_BUFFERS 2
 
 /* Define number of shared file descriptors */
 #if MALI_AFBC_GRALLOC == 1 && GRALLOC_ARM_DMA_BUF_MODULE
@@ -200,14 +199,6 @@ struct private_handle_t
 	int        width;
 	int        height;
 	int        stride;
-	int     type;
-	int     format;
-	// Rk: add for video special process
-	int     video_addr;
-	int     video_width;
-	int     video_height;
-	int     video_disp_width;
-	int     video_disp_height;
 	union {
 		void*    base;
 		uint64_t padding;
@@ -266,7 +257,6 @@ struct private_handle_t
 		width(0),
 		height(0),
 		stride(0),
-		byte_stride(0),
 		base(base),
 		lockState(lock_state),
 		writeOwner(0),
@@ -304,7 +294,6 @@ struct private_handle_t
 		width(0),
 		height(0),
 		stride(0),
-	    byte_stride(0),
 		base(base),
 		lockState(lock_state),
 		writeOwner(0),
@@ -344,7 +333,6 @@ struct private_handle_t
 		width(0),
 		height(0),
 		stride(0),
-		byte_stride(0),
 		base(base),
 		lockState(lock_state),
 		writeOwner(0),

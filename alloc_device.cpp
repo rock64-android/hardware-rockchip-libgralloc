@@ -33,12 +33,6 @@
 #include "framebuffer_device.h"
 
 #include "alloc_device_allocator_specific.h"
-#include <cutils/properties.h>
-#include <stdlib.h>
-
-
-//zxl:for vpu info
-#include "../librkvpu/vpu_global.h"
 #if MALI_AFBC_GRALLOC == 1
 #include "gralloc_buffer_priv.h"
 #endif
@@ -107,9 +101,6 @@ static int gralloc_alloc_framebuffer_locked(alloc_device_t* dev, size_t size, in
 			(void*)framebufferVaddr, 0, dup(m->framebuffer->fd),
 			(framebufferVaddr - (uintptr_t)m->framebuffer->base), 0);
 
-	hnd->stride = m->finfo.line_length / (m->info.bits_per_pixel >> 3);
-	hnd->byte_stride = m->finfo.line_length;
-
 	/*
 	 * Perform allocator specific actions. If these fail we fall back to a regular buffer
 	 * which will be memcpy'ed to the main screen when fb_post is called.
@@ -125,6 +116,7 @@ static int gralloc_alloc_framebuffer_locked(alloc_device_t* dev, size_t size, in
 
 	*pHandle = hnd;
 	*byte_stride = m->finfo.line_length;
+
 	return 0;
 }
 
@@ -261,6 +253,18 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 	uint64_t internal_format;
 	bool alloc_for_afbc=false;
 
+#if defined(GRALLOC_FB_SWAP_RED_BLUE)
+	/* match the framebuffer format */
+	if (usage & GRALLOC_USAGE_HW_FB)
+	{
+#ifdef GRALLOC_16_BITS
+		format = HAL_PIXEL_FORMAT_RGB_565;
+#else
+		format = HAL_PIXEL_FORMAT_BGRA_8888;
+#endif
+	}
+#endif
+
 	internal_format = gralloc_select_format(format, usage);
 
 	alloc_for_afbc = (internal_format & GRALLOC_ARM_INTFMT_AFBC);
@@ -270,7 +274,6 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 		case HAL_PIXEL_FORMAT_RGBA_8888:
 		case HAL_PIXEL_FORMAT_RGBX_8888:
 		case HAL_PIXEL_FORMAT_BGRA_8888:
-		case HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED:
 #if PLATFORM_SDK_VERSION >= 19
 		case HAL_PIXEL_FORMAT_sRGB_A_8888:
 		case HAL_PIXEL_FORMAT_sRGB_X_8888:
@@ -295,44 +298,24 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 				return -EINVAL;
 			}
 			break;
-	    case HAL_PIXEL_FORMAT_YCrCb_NV12:
-	    case HAL_PIXEL_FORMAT_YCrCb_NV12_10:
-		case HAL_PIXEL_FORMAT_YCrCb_NV12_VIDEO:
-#if 0		
-			get_rgb_stride_and_size(w, h, 2, &pixel_stride, &byte_stride, &size, alloc_for_afbc );
-#if !GET_VPU_INTO_FROM_HEAD
-				//zxl:add tVPU_FRAME at the end of allocated buffer
-				size = size + sizeof(tVPU_FRAME);
-#endif
-				break;
+
 			/*
 			 * Additional custom formats can be added here
 			 * and must fill the variables pixel_stride, byte_stride and size.
 			 */
-#else
-           // ALOGD("get_yv12_stride_and_size fmt=%d",internal_format);
-            if (!get_yv12_stride_and_size(w, h, &pixel_stride, &byte_stride, &size, alloc_for_afbc))
-			{
-				return -EINVAL;
-			}
-			size += w*h/2 ; // video dec need more buffer 
-#if !GET_VPU_INTO_FROM_HEAD
-				//zxl:add tVPU_FRAME at the end of allocated buffer
-				size = size + sizeof(tVPU_FRAME);
-#endif			
-			break;
-#endif
+
 		default:
 			return -EINVAL;
 	}
 
 	int err;
-
+#if DISABLE_FRAMEBUFFER_HAL != 1
 	if (usage & GRALLOC_USAGE_HW_FB)
 	{
 		err = gralloc_alloc_framebuffer(dev, size, usage, pHandle, &pixel_stride, &byte_stride);
 	}
 	else
+#endif
 	{
 		err = alloc_backend_alloc(dev, size, usage, pHandle);
 	}
@@ -342,23 +325,10 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 		return err;
 	}
 
-#if (1 == MALI_ARCHITECTURE_UTGARD)
-	/* match the framebuffer format */
-	if (usage & GRALLOC_USAGE_HW_FB)
-	{
-#ifdef GRALLOC_16_BITS
-		format = HAL_PIXEL_FORMAT_RGB_565;
-#else
-		format = HAL_PIXEL_FORMAT_RGBA_8888;
-#endif
-	}
-#endif
-
 	private_handle_t *hnd = (private_handle_t *)*pHandle;
 
 #if MALI_AFBC_GRALLOC == 1
 	err = gralloc_buffer_attr_allocate( hnd );
-	//ALOGD("err=%d,isfb=%x,[%d,%x]",err,usage & GRALLOC_USAGE_HW_FB,hnd->share_attr_fd,hnd->attr_base);
 	if( err < 0 )
 	{
 		private_module_t* m = reinterpret_cast<private_module_t*>(dev->common.module);
@@ -378,7 +348,9 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 	}
 #endif
 
-
+	hnd->req_format = format;
+	hnd->byte_stride = byte_stride;
+	hnd->internal_format = internal_format;
 
 	int private_usage = usage & (GRALLOC_USAGE_PRIVATE_0 |
 	                             GRALLOC_USAGE_PRIVATE_1);
@@ -398,17 +370,10 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 		break;
 	}
 
-	hnd->req_format = format;
-	hnd->byte_stride = byte_stride;
-	hnd->internal_format = internal_format;
-	hnd->video_width = 0;
-	hnd->video_height = 0;
-	hnd->format = format;
 	hnd->width = w;
 	hnd->height = h;
 	hnd->stride = pixel_stride;
 
-    //ALOGD("Isfb=%x,[%d,%d,%d,%d],fmt=%d,byte_stride=%d",usage & GRALLOC_USAGE_HW_FB,hnd->width,hnd->height,hnd->stride,hnd->byte_stride,hnd->format,byte_stride);
 	*pStride = pixel_stride;
 	return 0;
 }

@@ -28,6 +28,9 @@
 
 #if MALI_AFBC_GRALLOC == 1
 #include 	"formatdef_files/gpu_afbc.defs"
+#if MALI_DISPLAY_DP500 == 1
+#include 	"formatdef_files/dp500_afbc.defs"
+#endif
 #endif
 
 
@@ -145,6 +148,11 @@ const internal_fmt_info translate_internal_indexed[GRALLOC_ARM_FORMAT_INTERNAL_I
 blkinit blklist[] =
 {
 #if MALI_AFBC_GRALLOC == 1
+#if MALI_DISPLAY_DP500 == 1
+	{
+		display_afbc_hwc_blkinit,{0,{}}
+	},
+#endif
 	{
 		gpu_afbc_write_blkinit,{0,{}}
 	},

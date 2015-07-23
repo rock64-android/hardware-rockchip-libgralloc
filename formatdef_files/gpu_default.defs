@@ -16,10 +16,14 @@
  * limitations under the License.
  */
 
-static int16_t pref_formats[GRALLOC_ARM_FORMAT_INTERNAL_INDEXED_LAST] = {DEFAULT_WEIGHT_UNSUPPORTED};
+#include <cutils/memory.h>
+
+static int16_t pref_formats[GRALLOC_ARM_FORMAT_INTERNAL_INDEXED_LAST];
 
 static void gpu_read_blkinit(struct hwblk *blk,int16_t **array)
 {
+	android_memset16((uint16_t*) pref_formats, (uint16_t) DEFAULT_WEIGHT_UNSUPPORTED, sizeof(uint16_t) * GRALLOC_ARM_FORMAT_INTERNAL_INDEXED_LAST);
+
 	blk->usage = GRALLOC_USAGE_HW_TEXTURE;
 
 	/* Compatible internal formats for a specific input format will also be initialized */
@@ -32,12 +36,17 @@ static void gpu_read_blkinit(struct hwblk *blk,int16_t **array)
 	pref_formats[GRALLOC_ARM_FORMAT_INTERNAL_INDEXED_RGB_565] = DEFAULT_WEIGHT_SUPPORTED;
 	pref_formats[GRALLOC_ARM_FORMAT_INTERNAL_INDEXED_YV12] = DEFAULT_WEIGHT_SUPPORTED;
 
+	pref_formats[GRALLOC_ARM_FORMAT_INTERNAL_INDEXED_sRGB_A_8888] = DEFAULT_WEIGHT_SUPPORTED;
+	pref_formats[GRALLOC_ARM_FORMAT_INTERNAL_INDEXED_sRGB_X_8888] = DEFAULT_WEIGHT_SUPPORTED;
+
 	*array = pref_formats;
 }
 
 
 static void gpu_write_blkinit(struct hwblk *blk,int16_t **array)
 {
+	android_memset16((uint16_t*) pref_formats, (uint16_t) DEFAULT_WEIGHT_UNSUPPORTED, sizeof(uint16_t) * GRALLOC_ARM_FORMAT_INTERNAL_INDEXED_LAST);
+
 	blk->usage = GRALLOC_USAGE_HW_RENDER;
 
 	/* Compatible internal formats for a specific input format will also be initialized */
@@ -49,6 +58,9 @@ static void gpu_write_blkinit(struct hwblk *blk,int16_t **array)
 	pref_formats[GRALLOC_ARM_FORMAT_INTERNAL_INDEXED_RGB_888] = DEFAULT_WEIGHT_SUPPORTED;
 	pref_formats[GRALLOC_ARM_FORMAT_INTERNAL_INDEXED_RGB_565] = DEFAULT_WEIGHT_SUPPORTED;
 	pref_formats[GRALLOC_ARM_FORMAT_INTERNAL_INDEXED_YV12] = DEFAULT_WEIGHT_SUPPORTED;
+
+	pref_formats[GRALLOC_ARM_FORMAT_INTERNAL_INDEXED_sRGB_A_8888] = DEFAULT_WEIGHT_SUPPORTED;
+	pref_formats[GRALLOC_ARM_FORMAT_INTERNAL_INDEXED_sRGB_X_8888] = DEFAULT_WEIGHT_SUPPORTED;
 
 	*array = pref_formats;
 }

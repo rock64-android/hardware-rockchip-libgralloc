@@ -34,8 +34,7 @@
 
 #include <linux/ion.h>
 #include <ion/ion.h>
-#include <linux/rockchip_ion.h>
-extern int g_MMU_stat;
+
 int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle)
 {
 	private_module_t* m = reinterpret_cast<private_module_t*>(dev->common.module);
@@ -44,8 +43,7 @@ int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_hand
 	int shared_fd;
 	int ret;
 	unsigned int heap_mask;
-    int Ion_type;
-    bool Ishwc = false;//
+
 	/*
 	 * The following switch statement is intended to support the use of
 	 * platform specific ION heaps using the gralloc private usage
@@ -60,61 +58,24 @@ int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_hand
 	 *	break;
 	 */
 	default:
-		//heap_mask = ION_HEAP_SYSTEM_MASK;
-		//ALOGD("g_MMU_stat =%d",g_MMU_stat); 
-		if(g_MMU_stat)
-		{
-            heap_mask = ION_HEAP(ION_VMALLOC_HEAP_ID);
-            Ion_type = 1;
-        }    
-		else
-		{
-            heap_mask = ION_HEAP(ION_CMA_HEAP_ID);
-            Ion_type = 0;
-        }    
+		heap_mask = ION_HEAP_SYSTEM_MASK;
 		break;
 	}
 
 	int ion_flags = 0;
-    if(usage == (GRALLOC_USAGE_HW_COMPOSER|GRALLOC_USAGE_HW_RENDER|GRALLOC_USAGE_HW_VIDEO_ENCODER))
-        Ishwc = true;
-    #if 0
+
 	if ( (usage & GRALLOC_USAGE_SW_READ_MASK) == GRALLOC_USAGE_SW_READ_OFTEN )
 	{
-		//ion_flags = ION_FLAG_CACHED | ION_FLAG_CACHED_NEEDS_SYNC; // Temporarily ignore,for ion dont supprot
+		ion_flags = ION_FLAG_CACHED | ION_FLAG_CACHED_NEEDS_SYNC;
 	}
 
-    if(usage == (GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_SW_WRITE_OFTEN | GRALLOC_USAGE_SW_READ_OFTEN ))
-    {
-        heap_mask = ION_HEAP(ION_SYSTEM_HEAP_ID); // force Brower GraphicBufferAllocator to logics memery
-    }
-    #endif
-    ALOGV("[%d,%d,%d],usage=%x",m->ion_client, size, ion_flags,usage);   
-	ret = ion_alloc(m->ion_client, size, 0, heap_mask, ion_flags, &ion_hnd );
-	if ( ret != 0 ) 
-	{
-	    if( heap_mask == ION_HEAP(ION_CMA_HEAP_ID) && !Ishwc)
-	    {
-	        heap_mask = ION_HEAP(ION_VMALLOC_HEAP_ID);	 
-        	ret = ion_alloc(m->ion_client, size, 0, heap_mask, ion_flags, &ion_hnd );
-        	{
+	ret = ion_alloc(m->ion_client, size, 0, heap_mask,
+	                ion_flags, &ion_hnd );
+
 	if ( ret != 0) 
 	{
-                    AERR("Force to VMALLOC fail ion_client:%d", m->ion_client);
-                    return -1;
-        	    }
-        	    else
-        	    {
-        	        ALOGD("Force to VMALLOC sucess !");
-        	        Ion_type = 1;
-        	    }        	            	    
-        	}
-	    }
-	    else
-	    {
 		AERR("Failed to ion_alloc from ion_client:%d", m->ion_client);
 		return -1;
-    	}	
 	}
 
 	ret = ion_share( m->ion_client, ion_hnd, &shared_fd );
@@ -140,12 +101,7 @@ int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_hand
 	{
 		hnd->share_fd = shared_fd;
 		hnd->ion_hnd = ion_hnd;
-		hnd->type = Ion_type;
 		*pHandle = hnd;
-		if(hnd->type== 1)
-		{
-		    ALOGW(" Debugmem The fd=%d, in vmalloc !!!! Ishwc=%d",hnd->share_fd,Ishwc);
-		}
 		return 0;
 	}
 	else
@@ -163,20 +119,24 @@ int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_hand
 
 int alloc_backend_alloc_framebuffer(private_module_t* m, private_handle_t* hnd)
 {
-//	struct fb_dmabuf_export fb_dma_buf;
+	struct fb_dmabuf_export fb_dma_buf;
 	int res;
-	int share_fd = -1;
-	res =  ioctl( m->framebuffer->fd, /*FBIOGET_DMABUF*/0x5003, &share_fd );//ioctl( m->framebuffer->fd, FBIOGET_DMABUF, &fb_dma_buf );
+	res = ioctl( m->framebuffer->fd, FBIOGET_DMABUF, &fb_dma_buf );
 	if(res == 0)
 	{
-		hnd->share_fd = share_fd;//hnd->share_fd = fb_dma_buf.fd;
+		hnd->share_fd = fb_dma_buf.fd;
+		return 0;
 	}
 	else
 	{
 		AINF("FBIOGET_DMABUF ioctl failed(%d). See gralloc_priv.h and the integration manual for vendor framebuffer integration", res);
+#if MALI_ARCHITECTURE_UTGARD
+		/* On Utgard we do not have a strict requirement of DMA-BUF integration */
+		return 0;
+#else
+		return -1;
+#endif
 	}
-
-	return 0;
 }
 
 void alloc_backend_alloc_free(private_handle_t const* hnd, private_module_t* m)
@@ -220,9 +180,8 @@ int alloc_backend_close(struct hw_device_t *device)
 	alloc_device_t* dev = reinterpret_cast<alloc_device_t*>(device);
 	if (dev)
 	{
-		private_module_t *m = reinterpret_cast<private_module_t*>(device);
-		if ( 0 != ion_close(m->ion_client) ) AERR( "Failed to close ion_client: %d", m->ion_client );
-		close(m->ion_client);
+		private_module_t *m = reinterpret_cast<private_module_t*>(dev->common.module);
+		if ( 0 != ion_close(m->ion_client) ) AERR( "Failed to close ion_client: %d err=%s", m->ion_client , strerror(errno));
 		delete dev;
 	}
 	return 0;
