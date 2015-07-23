@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 ARM Limited. All rights reserved.
+ * Copyright (C) 2014 ARM Limited. All rights reserved.
  *
  * Copyright (C) 2008 The Android Open Source Project
  *
@@ -26,6 +26,7 @@
 #include <cutils/atomic.h>
 #include <hardware/hardware.h>
 #include <hardware/gralloc.h>
+#include <hardware/rk_fh.h>
 
 #include <GLES/gl.h>
 
@@ -36,7 +37,8 @@
 
 // numbers of buffers for page flipping
 #define NUM_BUFFERS NUM_FB_BUFFERS 
-
+#define RK_FBIOGET_IOMMU_STA        0x4632
+#define RK_FBIOSET_CLEAR_FB         0x4633
 enum
 {
 	PAGE_FLIP = 0x00000001,
@@ -97,11 +99,49 @@ static int fb_post(struct framebuffer_device_t* dev, buffer_handle_t buffer)
 			return -errno;
 		}
 #else /*Standard Android way*/
+        #if 0
 		if (ioctl(m->framebuffer->fd, FBIOPUT_VSCREENINFO, &m->info) == -1) 
 		{
 			AERR( "FBIOPUT_VSCREENINFO failed for fd: %d", m->framebuffer->fd );
 			m->base.unlock(&m->base, buffer); 
 			return -errno;
+		}
+		#endif
+		int sync = 0;
+        struct rk_fb_win_cfg_data fb_info;
+        memset(&fb_info,0,sizeof(fb_info));
+		
+        unsigned int fboffset = hnd->offset;        
+        fb_info.win_par[0].area_par[0].data_format = hnd->format;
+        fb_info.win_par[0].win_id = 0;
+        fb_info.win_par[0].z_order = 0;
+        fb_info.win_par[0].area_par[0].ion_fd = hnd->share_fd;
+        fb_info.win_par[0].area_par[0].acq_fence_fd = -1;
+        fb_info.win_par[0].area_par[0].x_offset = 0;
+        fb_info.win_par[0].area_par[0].y_offset = fboffset/m->finfo.line_length;
+        fb_info.win_par[0].area_par[0].xpos = 0;
+        fb_info.win_par[0].area_par[0].ypos = 0;
+        fb_info.win_par[0].area_par[0].xsize = hnd->width;
+        fb_info.win_par[0].area_par[0].ysize = hnd->height;
+        fb_info.win_par[0].area_par[0].xact = hnd->width;
+        fb_info.win_par[0].area_par[0].yact = hnd->height;
+        fb_info.win_par[0].area_par[0].xvir = hnd->width;
+        fb_info.win_par[0].area_par[0].yvir = hnd->height;
+        if (ioctl(m->framebuffer->fd, RK_FBIOSET_CONFIG_DONE, &fb_info) == -1) 
+		{
+			AERR( "FBIOPUT_VSCREENINFO failed for fd: %d", m->framebuffer->fd );
+			m->base.unlock(&m->base, buffer); 
+			return -errno;
+		} 
+		else
+		{
+            for(int k=0;k<RK_MAX_BUF_NUM;k++)
+            {
+                if(fb_info.rel_fence_fd[k]!= -1)
+                    close(fb_info.rel_fence_fd[k]);
+            }
+            if(fb_info.ret_fence_fd != -1)
+                close(fb_info.ret_fence_fd);		
 		}
 #endif
 		if ( 0 != gralloc_wait_for_vsync(dev) )
@@ -187,7 +227,7 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	{
 		return -errno;
 	}
-
+   // finfo.line_length = 2048*4;
 	struct fb_var_screeninfo info;
 	if (ioctl(fd, FBIOGET_VSCREENINFO, &info) == -1)
 	{
@@ -214,6 +254,8 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	info.blue.length    = 5;
 	info.transp.offset  = 0;
 	info.transp.length  = 0;
+	info.nonstd &= 0xffffff00;
+	info.nonstd |= HAL_PIXEL_FORMAT_RGB_565;
 #else
 	/*
 	 * Explicitly request 8/8/8
@@ -227,6 +269,10 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	info.blue.length    = 8;
 	info.transp.offset  = 0;
 	info.transp.length  = 0;
+	info.grayscale	    &= 0xff;
+	info.grayscale	    |= (info.xres<<8) + (info.yres<<20);
+	info.nonstd &= 0xffffff00;
+	info.nonstd |= HAL_PIXEL_FORMAT_RGBX_8888;
 #endif
 
 	/*
@@ -234,6 +280,7 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	 */
 	info.yres_virtual = info.yres * NUM_BUFFERS;
 
+	ioctl(fd, RK_FBIOSET_CLEAR_FB, NULL);
 	uint32_t flags = PAGE_FLIP;
 	if (ioctl(fd, FBIOPUT_VSCREENINFO, &info) == -1)
 	{
@@ -241,6 +288,7 @@ int init_frame_buffer_locked(struct private_module_t* module)
 		flags &= ~PAGE_FLIP;
 		AWAR( "FBIOPUT_VSCREENINFO failed, page flipping not supported fd: %d", fd );
 	}
+	int sync = 0;
 
 	if (info.yres_virtual < info.yres * 2)
 	{
@@ -258,12 +306,11 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	int refreshRate = 0;
 	if ( info.pixclock > 0 )
 	{
-		refreshRate = 1000000000000000LLU /
-		(
-			uint64_t( info.upper_margin + info.lower_margin + info.yres + info.hsync_len )
-			* ( info.left_margin  + info.right_margin + info.xres + info.vsync_len )
-			* info.pixclock
-		);
+		refreshRate =
+            1000000000000000LLU 
+            / ( uint64_t( info.vsync_len + info.upper_margin + info.lower_margin + info.yres )  // 纵向 pixel_num.
+                * ( info.hsync_len + info.left_margin  + info.right_margin + info.xres )        // 横向. 
+                * info.pixclock );                                                              // pixel_clock.
 	}
 	else
 	{
@@ -296,7 +343,8 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	     "bpp          = %d\n"
 	     "r            = %2u:%u\n"
 	     "g            = %2u:%u\n"
-	     "b            = %2u:%u\n",
+	     "b            = %2u:%u\n"
+	     "format       = %d\n",
 	     fd,
 	     finfo.id,
 	     info.xres,
@@ -306,7 +354,8 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	     info.bits_per_pixel,
 	     info.red.offset, info.red.length,
 	     info.green.offset, info.green.length,
-	     info.blue.offset, info.blue.length);
+	     info.blue.offset, info.blue.length,
+	     info.nonstd);
 
 	AINF("width        = %d mm (%f dpi)\n"
 	     "height       = %d mm (%f dpi)\n"
@@ -338,13 +387,6 @@ int init_frame_buffer_locked(struct private_module_t* module)
 		return -errno;
 	}
 
-	module->flags = flags;
-	module->info = info;
-	module->finfo = finfo;
-	module->xdpi = xdpi;
-	module->ydpi = ydpi;
-	module->fps = fps;
-	module->swapInterval = 1;
 
 	/*
 	 * map the framebuffer
@@ -359,6 +401,12 @@ int init_frame_buffer_locked(struct private_module_t* module)
 
 	memset(vaddr, 0, fbSize);
 
+	module->flags = flags;
+	module->info = info;
+	module->finfo = finfo;
+	module->xdpi = xdpi;
+	module->ydpi = ydpi;
+	module->fps = fps;
 
 	// Create a "fake" buffer object for the entire frame buffer memory, and store it in the module
 	module->framebuffer = new private_handle_t(private_handle_t::PRIV_FLAGS_FRAMEBUFFER, GRALLOC_USAGE_HW_FB, fbSize, vaddr,
@@ -468,7 +516,7 @@ int framebuffer_device_open(hw_module_t const* module, const char* name, hw_devi
 #ifdef GRALLOC_16_BITS
 	const_cast<int&>(dev->format) = HAL_PIXEL_FORMAT_RGB_565;
 #else
-	const_cast<int&>(dev->format) = HAL_PIXEL_FORMAT_BGRA_8888;
+	const_cast<int&>(dev->format) = HAL_PIXEL_FORMAT_RGBA_8888;
 #endif
 	const_cast<float&>(dev->xdpi) = m->xdpi;
 	const_cast<float&>(dev->ydpi) = m->ydpi;

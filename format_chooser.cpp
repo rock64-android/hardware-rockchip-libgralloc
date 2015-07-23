@@ -80,12 +80,14 @@ static inline int find_format_index(int format)
 	return index;
 }
 
+// #define GRALLOC_ARM_FORMAT_SELECTION_DISABLE 
 /*
  * Define GRALLOC_ARM_FORMAT_SELECTION_DISABLE to disable the format selection completely
  */
 uint64_t gralloc_select_format(int req_format, int usage)
 {
 #if defined(GRALLOC_ARM_FORMAT_SELECTION_DISABLE)
+#warning "arm_format_selection was disabled!"
 
 	(void) usage;
 	return (uint64_t) req_format;
@@ -159,14 +161,12 @@ uint64_t gralloc_select_format(int req_format, int usage)
 		return new_format;
 	}
 
-#if DISABLE_FRAMEBUFFER_HAL != 1
 	/* This is currently a limitation with the display and will be removed eventually
 	 *  We can't allocate fbdev framebuffer buffers in AFBC format */
 	if( usage & GRALLOC_USAGE_HW_FB )
 	{
 		return new_format;
 	}
-#endif
 
 	/* if this format can't be classified in one of the groups we
 	 * have pre-defined, ignore it.

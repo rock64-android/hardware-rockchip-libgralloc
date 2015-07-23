@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+// #define ENABLE_DEBUG_LOG
+#include <log/custom_log.h>
+
 #include <errno.h>
 #include <pthread.h>
 
@@ -36,12 +39,41 @@
 
 #include "format_chooser.h"
 
+#include <cutils/properties.h>
+
+#include <fcntl.h>
+
+#define RK_FBIOGET_IOMMU_STA        0x4632
+
+#define RK_GRALLOC_VERSION "1.0.1"
+
 static pthread_mutex_t s_map_lock = PTHREAD_MUTEX_INITIALIZER;
+int g_MMU_stat = 0;
 
 static int gralloc_device_open(const hw_module_t* module, const char* name, hw_device_t** device)
 {
 	int status = -EINVAL;
+    int fd;
+    property_set("sys.ggralloc.version", RK_GRALLOC_VERSION);
 
+    I("to open device '%s' in gralloc_module with ver '%s', built at '%s', on '%s'.",
+        name,
+        RK_GRALLOC_VERSION,
+        __TIME__,
+        __DATE__);
+
+    fd = open("/dev/graphics/fb0", O_RDONLY, 0);
+    ALOGD("gralloc_device_open new neiw fd=%d",fd);
+    if(fd > 0)
+    {
+	    ioctl(fd, RK_FBIOGET_IOMMU_STA, &g_MMU_stat);
+        ALOGD("g_MMU_stat=%d",g_MMU_stat);
+	    close(fd);
+    }
+    else
+    {
+        ALOGE("gralloc_debug fb0 open err in gralloc_device_open!");
+    }
 	if (!strncmp(name, GRALLOC_HARDWARE_GPU0, MALI_GRALLOC_HARDWARE_MAX_STR_LEN))
 	{
 		status = alloc_device_open(module, name, device);

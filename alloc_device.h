@@ -32,6 +32,8 @@
 #endif
 
 #define GRALLOC_ALIGN( value, base ) (((value) + ((base) - 1)) & ~((base) - 1))
+#define ODD_ALIGN(x, align)		(((x) % ((align) * 2) == 0) ? ((x) + (align)) : (x))
+#define GRALLOC_ODD_ALIGN( value, base )   ODD_ALIGN(GRALLOC_ALIGN(value, base), base)
 
 // Create an alloc device
 int alloc_device_open(hw_module_t const* module, const char* name, hw_device_t** device);
