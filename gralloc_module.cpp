@@ -46,6 +46,8 @@
 #define RK_FBIOGET_IOMMU_STA        0x4632
 
 #define RK_GRALLOC_VERSION "1.0.1"
+#define ARM_RELEASE_VER "r6p0-02rel0"
+
 
 static pthread_mutex_t s_map_lock = PTHREAD_MUTEX_INITIALIZER;
 int g_MMU_stat = 0;
@@ -56,9 +58,10 @@ static int gralloc_device_open(const hw_module_t* module, const char* name, hw_d
     int fd;
     property_set("sys.ggralloc.version", RK_GRALLOC_VERSION);
 
-    I("to open device '%s' in gralloc_module with ver '%s', built at '%s', on '%s'.",
+    I("to open device '%s' in gralloc_module with ver '%s' on arm_release_ver '%s', built at '%s', on '%s'.",
         name,
         RK_GRALLOC_VERSION,
+        ARM_RELEASE_VER,
         __TIME__,
         __DATE__);
 
