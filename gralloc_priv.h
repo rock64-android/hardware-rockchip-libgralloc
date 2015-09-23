@@ -211,7 +211,6 @@ struct private_handle_t
 	int        magic;
 	int        req_format;
 	uint64_t   internal_format;
-	int        byte_stride;
 	int        flags;
 	int        usage;
 	int        size;
@@ -220,6 +219,7 @@ struct private_handle_t
 	int        internalWidth;
 	int        internalHeight;
 	int        stride;
+	int        byte_stride;
 	int     type;
 	int     format;
 	// Rk: add for video special process

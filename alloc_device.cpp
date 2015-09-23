@@ -828,7 +828,7 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
             case HAL_PIXEL_FORMAT_YCrCb_NV12:
             case HAL_PIXEL_FORMAT_YCrCb_NV12_10:
             case HAL_PIXEL_FORMAT_YCrCb_NV12_VIDEO:
-                if (!get_yv12_stride_and_size(w, h, &pixel_stride, &byte_stride, &size, type))
+                if (!get_yv12_stride_and_size(w, h, &pixel_stride, &byte_stride, &size, type, &internalHeight))
                 {
                     E("err.");
                     return -EINVAL;
@@ -845,7 +845,7 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 			    break;
 
 			default:
-		        E("unexpected format : 0x%x", internal_format & GRALLOC_ARM_INTFMT_FMT_MASK);
+		        E("unexpected format : 0x%llx", internal_format & GRALLOC_ARM_INTFMT_FMT_MASK);
 				return -EINVAL;
 		}
 	}
