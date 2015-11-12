@@ -59,7 +59,7 @@ static inline int find_format_index(int format)
 		case HAL_PIXEL_FORMAT_BGRA_8888:
 			index = GRALLOC_ARM_HAL_FORMAT_INDEXED_BGRA_8888;
 			break;
-#if PLATFORM_SDK_VERSION >= 19
+#if (PLATFORM_SDK_VERSION >= 19) && (PLATFORM_SDK_VERSION <= 22)
 		case HAL_PIXEL_FORMAT_sRGB_A_8888:
 			index = GRALLOC_ARM_HAL_FORMAT_INDEXED_sRGB_A_8888;
 			break;

@@ -27,10 +27,11 @@
 
 struct attr_region
 {
-	int crop_bottom;
-	int crop_left;
+	/* Rectangle to be cropped from the full frame (Origin in top-left corner!) */
 	int crop_top;
-	int crop_right;
+	int crop_left;
+	int crop_height;
+	int crop_width;
 	int use_yuv_transform;
 	int use_sparse_alloc;
 } __attribute__ ((packed));
@@ -45,7 +46,7 @@ enum
 	 * it queues a buffer to the consumer.
 	 */
 
-	/* CROP RECT, defined as a uint32_t array of bottom,left,top,right. */
+	/* CROP RECT, defined as a int array of top, left, height, width. */
 	GRALLOC_ARM_BUFFER_ATTR_CROP_RECT                  = 1,
 
 	/* Set if the AFBC format used a YUV transform before compressing */
@@ -156,7 +157,7 @@ static inline int gralloc_buffer_attr_write( struct private_handle_t *hnd, buf_a
 		switch( attr )
 		{
 			case GRALLOC_ARM_BUFFER_ATTR_CROP_RECT:
-				memcpy( &region->crop_bottom, val, sizeof(int)*4 );
+				memcpy( &region->crop_top, val, sizeof(int)*4 );
 				rval = 0;
 				break;
 
@@ -190,7 +191,7 @@ static inline int gralloc_buffer_attr_read( struct private_handle_t *hnd, buf_at
 		switch( attr )
 		{
 			case GRALLOC_ARM_BUFFER_ATTR_CROP_RECT:
-				memcpy( val, &region->crop_bottom, sizeof(int)*4 );
+				memcpy( val, &region->crop_top, sizeof(int)*4 );
 				rval = 0;
 				break;
 

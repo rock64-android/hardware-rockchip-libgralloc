@@ -794,8 +794,7 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 			case HAL_PIXEL_FORMAT_RGBA_8888:
 			case HAL_PIXEL_FORMAT_RGBX_8888:
 			case HAL_PIXEL_FORMAT_BGRA_8888:
-		    case HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED:
-#if PLATFORM_SDK_VERSION >= 19
+#if (PLATFORM_SDK_VERSION >= 19) && (PLATFORM_SDK_VERSION <= 22)
 			case HAL_PIXEL_FORMAT_sRGB_A_8888:
 			case HAL_PIXEL_FORMAT_sRGB_X_8888:
 #endif
