@@ -54,8 +54,8 @@ typedef struct ion_handle *ion_user_handle_t;
 #endif /* MALI_ION */
 
 /* NOTE:
- * If your framebuffer device driver is integrated with UMP, you will have to 
- * change this IOCTL definition to reflect your integration with the framebuffer 
+ * If your framebuffer device driver is integrated with UMP, you will have to
+ * change this IOCTL definition to reflect your integration with the framebuffer
  * device.
  * Expected return value is a UMP secure id backing your framebuffer device memory.
  */
@@ -71,7 +71,7 @@ typedef struct ion_handle *ion_user_handle_t;
  * backing your framebuffer device memory.
  */
 #if GRALLOC_ARM_DMA_BUF_MODULE
-struct fb_dmabuf_export 
+struct fb_dmabuf_export
 {
 	__u32 fd;
 	__u32 flags;

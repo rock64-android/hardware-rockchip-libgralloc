@@ -72,7 +72,7 @@ AFBC_FILES =
 endif
 
 #If cropping should be enabled for AFBC YUV420 buffers
-AFBC_YUV420_EXTRA_MB_ROW_NEEDED = 0
+AFBC_YUV420_EXTRA_MB_ROW_NEEDED ?= 0
 
 ifdef MALI_DISPLAY_VERSION
 #if Mali display is available, should disable framebuffer HAL
