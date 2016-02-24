@@ -58,7 +58,7 @@ static int gralloc_device_open(const hw_module_t* module, const char* name, hw_d
 
     I("to open device '%s' in gralloc_module with ver '%s', built at '%s', on '%s'.",
         name,
-        RK_GRALLOC_VERSION,
+        RK_GRAPHICS_VER,
         __TIME__,
         __DATE__);
 
