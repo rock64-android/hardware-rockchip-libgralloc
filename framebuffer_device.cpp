@@ -237,6 +237,7 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	info.reserved[0] = 0;
 	info.reserved[1] = 0;
 	info.reserved[2] = 0;
+	info.reserved[3] = 1;
 	info.xoffset = 0;
 	info.yoffset = 0;
 	info.activate = FB_ACTIVATE_NOW;
@@ -280,7 +281,7 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	 */
 	info.yres_virtual = info.yres * NUM_BUFFERS;
 
-	ioctl(fd, RK_FBIOSET_CLEAR_FB, NULL);
+	//ioctl(fd, RK_FBIOSET_CLEAR_FB, NULL);
 	uint32_t flags = PAGE_FLIP;
 	if (ioctl(fd, FBIOPUT_VSCREENINFO, &info) == -1)
 	{
@@ -399,7 +400,7 @@ int init_frame_buffer_locked(struct private_module_t* module)
 		return -errno;
 	}
 
-	memset(vaddr, 0, fbSize);
+	//memset(vaddr, 0, fbSize);
 
 	module->flags = flags;
 	module->info = info;
