@@ -18,6 +18,8 @@
 LOCAL_PATH := $(call my-dir)
 
 ifneq ($(strip $(TARGET_BOARD_PLATFORM)), rk3368)
+ifneq ($(strip $(TARGET_BOARD_PLATFORM)), rk3366)
+
 
 MALI_ARCHITECTURE_UTGARD?=0
 MALI_ION?=1
@@ -105,4 +107,5 @@ LOCAL_SRC_FILES := \
 
 include $(BUILD_SHARED_LIBRARY)
 
+endif
 endif
