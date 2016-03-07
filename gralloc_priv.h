@@ -83,7 +83,7 @@ struct fb_dmabuf_export
  * 8 is big enough for "gpu0" & "fb0" currently
  */
 #define MALI_GRALLOC_HARDWARE_MAX_STR_LEN 8
-#define NUM_FB_BUFFERS 3
+#define NUM_FB_BUFFERS 2
 
 /* Define number of shared file descriptors */
 #if MALI_AFBC_GRALLOC == 1 && GRALLOC_ARM_DMA_BUF_MODULE
