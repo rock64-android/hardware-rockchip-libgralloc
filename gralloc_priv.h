@@ -148,19 +148,38 @@ struct private_module_t
 		PRIV_USAGE_LOCKED_FOR_POST = 0x80000000
 	};
 
+    /*-------------------------------------------------------*/
 /**
- * 对 32_5.x 预期宏配置的检查,
+ * 对预期宏配置的检查,
  * 用于检查依赖 private_handle_t 的 模块 (mali_so 等), 编译期对相关宏配置正确. 
  */
 #if GRALLOC_ARM_DMA_BUF_MODULE != 1
 #error
 #endif
-#if MALI_AFBC_GRALLOC != 0
-#error
-#endif
+
 #if GRALLOC_ARM_UMP_MODULE != 0
 #error
 #endif
+
+#if MALI_PRODUCT_ID_T86X != 1 \
+    && MALI_PRODUCT_ID_T76X != 1 \
+    && MALI_PRODUCT_ID_T72X != 1
+#error "we must define MALI_PRODUCT_ID_TXXX for current Mali GPU."
+#endif
+
+/* 要求在 mali-t860 上使用 AFBC. */
+#if MALI_PRODUCT_ID_T86X == 1 && MALI_AFBC_GRALLOC != 1
+#error "we must enable AFBC for mali-t860."
+#endif
+
+#if MALI_PRODUCT_ID_T76X == 1 && MALI_AFBC_GRALLOC != 1
+#error "we must NOT enable AFBC for mali-t760."
+#endif
+
+#if MALI_PRODUCT_ID_T72X == 1 && MALI_AFBC_GRALLOC == 1
+#error "we must NOT enable AFBC for mali-t720."
+#endif
+    /*-------------------------------------------------------*/
 
 #ifdef __cplusplus
 	/* default constructor */

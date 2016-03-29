@@ -102,6 +102,7 @@ static bool is_afbc_allowed(int buffer_size)
  * Define GRALLOC_ARM_FORMAT_SELECTION_DISABLE to disable the format selection completely
  * or GRALLOC_ARM_NO_EXTERNAL_AFBC to disable selection of AFBC formats for external buffers.
  */
+#define GRALLOC_ARM_FORMAT_SELECTION_DISABLE 
 uint64_t gralloc_select_format(int req_format, int usage, int buffer_size)
 {
 #if defined(GRALLOC_ARM_FORMAT_SELECTION_DISABLE)
