@@ -26,7 +26,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/mman.h>
-
 #include <hardware/gralloc.h>
 #include <cutils/native_handle.h>
 #include "alloc_device.h"
@@ -101,6 +100,9 @@ struct fb_dmabuf_export
 #if GRALLOC_ARM_UMP_MODULE
 #include <ump/ump.h>
 #endif
+
+#define SZ_4K      0x00001000
+#define SZ_2M      0x00200000
 
 typedef enum
 {
@@ -177,9 +179,10 @@ struct private_handle_t
 
 	enum
 	{
-		PRIV_FLAGS_FRAMEBUFFER = 0x00000001,
-		PRIV_FLAGS_USES_UMP    = 0x00000002,
-		PRIV_FLAGS_USES_ION    = 0x00000004
+		PRIV_FLAGS_FRAMEBUFFER       = 0x00000001,
+		PRIV_FLAGS_USES_UMP          = 0x00000002,
+		PRIV_FLAGS_USES_ION          = 0x00000004,
+		PRIV_FLAGS_USES_ION_DMA_HEAP = 0x00000008
 	};
 
 	enum
@@ -261,7 +264,12 @@ struct private_handle_t
 		uint64_t padding5;
 	};
 #endif
-
+	/*
+	 * min_pgsz denotes minimum phys_page size used by this buffer.
+	 * if buffer memory is physical contiguous set min_pgsz to buff->size
+	 * if not sure buff's real phys_page size, you can use SZ_4K for safe.
+	 */
+	int min_pgsz;
 #ifdef __cplusplus
 	/*
 	 * We track the number of integers in the structure. There are 16 unconditional

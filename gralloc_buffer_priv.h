@@ -40,13 +40,13 @@ typedef struct attr_region attr_region;
 
 enum
 {
-	/* CROP and YUV_TRANS are intended to be
+	/* CROP_RECT and YUV_TRANS are intended to be
 	 * written by producers and read by consumers.
-	 * Producers should write these parameters before
+	 * A producer should write these parameters before
 	 * it queues a buffer to the consumer.
 	 */
 
-	/* CROP RECT, defined as a int array of top, left, height, width. */
+	/* CROP RECT, defined as an int array of top, left, height, width. Origin in top-left corner */
 	GRALLOC_ARM_BUFFER_ATTR_CROP_RECT                  = 1,
 
 	/* Set if the AFBC format used a YUV transform before compressing */

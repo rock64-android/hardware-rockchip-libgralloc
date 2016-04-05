@@ -195,6 +195,13 @@ static int gralloc_lock(gralloc_module_t const* module, buffer_handle_t handle, 
 	}
 
 	private_handle_t* hnd = (private_handle_t*)handle;
+
+	if (hnd->req_format == HAL_PIXEL_FORMAT_YCbCr_420_888)
+	{
+		AERR("Buffers with format YCbCr_420_888 must be locked using (*lock_ycbcr)" );
+		return -EINVAL;
+	}
+
 	if (hnd->flags & private_handle_t::PRIV_FLAGS_USES_UMP || hnd->flags & private_handle_t::PRIV_FLAGS_USES_ION)
 	{
 		hnd->writeOwner = usage & GRALLOC_USAGE_SW_WRITE_MASK;
@@ -202,6 +209,73 @@ static int gralloc_lock(gralloc_module_t const* module, buffer_handle_t handle, 
 	if (usage & (GRALLOC_USAGE_SW_READ_MASK | GRALLOC_USAGE_SW_WRITE_MASK))
 	{
 		*vaddr = (void*)hnd->base;
+	}
+	return 0;
+}
+
+static int gralloc_lock_ycbcr(gralloc_module_t const* module, buffer_handle_t handle, int usage,
+                              int l, int t, int w, int h,
+                              android_ycbcr *ycbcr)
+{
+	if (private_handle_t::validate(handle) < 0)
+	{
+		AERR("Locking invalid buffer %p, returning error", handle );
+		return -EINVAL;
+	}
+
+	private_handle_t* hnd = (private_handle_t*)handle;
+
+	if (hnd->flags & private_handle_t::PRIV_FLAGS_USES_UMP || hnd->flags & private_handle_t::PRIV_FLAGS_USES_ION)
+	{
+		hnd->writeOwner = usage & GRALLOC_USAGE_SW_WRITE_MASK;
+	}
+	if (usage & (GRALLOC_USAGE_SW_READ_MASK | GRALLOC_USAGE_SW_WRITE_MASK))
+	{
+		char* base = (char*)hnd->base;
+		int y_stride = hnd->byte_stride;
+		int y_size =  y_stride * hnd->height;
+
+		int u_offset = 0;
+		int v_offset = 0;
+		int c_stride = 0;
+		int step = 0;
+
+		switch (hnd->internal_format & GRALLOC_ARM_INTFMT_FMT_MASK)
+		{
+			case HAL_PIXEL_FORMAT_YCbCr_420_888: /* Internally interpreted as NV12 */
+				c_stride = y_stride;
+				/* Y plane, UV plane */
+				u_offset = y_size;
+				v_offset = y_size + 1;
+				step = 2;
+				break;
+
+			case HAL_PIXEL_FORMAT_YV12:
+			case GRALLOC_ARM_HAL_FORMAT_INDEXED_YV12:
+			{
+				int c_size;
+
+				/* Stride alignment set to 16 as the SW access flags were set */
+				c_stride = GRALLOC_ALIGN(hnd->byte_stride / 2, 16);
+				c_size = c_stride * (hnd->height / 2);
+				/* Y plane, V plane, U plane */
+				v_offset = y_size;
+				u_offset = y_size + c_size;
+				step = 1;
+				break;
+			}
+
+			default:
+				AERR("Can't lock buffer %p: wrong format %llx", hnd, hnd->internal_format);
+				return -EINVAL;
+		}
+
+		ycbcr->y = base;
+		ycbcr->cb = base + u_offset;
+		ycbcr->cr = base + v_offset;
+		ycbcr->ystride = y_stride;
+		ycbcr->cstride = c_stride;
+		ycbcr->chroma_step = step;
 	}
 	return 0;
 }
@@ -250,6 +324,7 @@ private_module_t::private_module_t()
 	base.registerBuffer = gralloc_register_buffer;
 	base.unregisterBuffer = gralloc_unregister_buffer;
 	base.lock = gralloc_lock;
+	base.lock_ycbcr = gralloc_lock_ycbcr;
 	base.unlock = gralloc_unlock;
 	base.perform = NULL;
 	INIT_ZERO(base.reserved_proc);

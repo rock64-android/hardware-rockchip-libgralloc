@@ -125,8 +125,11 @@ void gralloc_backend_sync(private_handle_t* hnd)
 		private_module_t *m=NULL;
 		if (hw_get_module(GRALLOC_HARDWARE_MODULE_ID, (const hw_module_t **)&pmodule) == 0)
 		{
-			m = reinterpret_cast<private_module_t *>(pmodule);
-			ion_sync_fd(m->ion_client, hnd->share_fd);
+			if(!(hnd->flags & private_handle_t::PRIV_FLAGS_USES_ION_DMA_HEAP))
+			{
+				m = reinterpret_cast<private_module_t *>(pmodule);
+				ion_sync_fd(m->ion_client, hnd->share_fd);
+			}
 		}
 		else
 		{

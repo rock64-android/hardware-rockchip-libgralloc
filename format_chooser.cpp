@@ -20,23 +20,16 @@
 #include <hardware/gralloc.h>
 #include "format_chooser.h"
 
-#define GRALLOC_ANDROID_PRIVATE_IN_RANGE_OF_AFBC(x) \
-			(((x) > GRALLOC_ANDROID_PRIVATE_RANGE_BASE_AFBC && \
-			(x) <= (GRALLOC_ANDROID_PRIVATE_RANGE_BASE_AFBC + 0xff)) || \
-			((x) == (GRALLOC_ANDROID_PRIVATE_RANGE_BASE_AFBC + HAL_PIXEL_FORMAT_YV12)))
-#define GRALLOC_ANDROID_PRIVATE_IN_RANGE_OF_AFBC_SPLITBLK(x) \
-			(((x) > GRALLOC_ANDROID_PRIVATE_RANGE_BASE_AFBC_SPLITBLK && \
-			(x) <= (GRALLOC_ANDROID_PRIVATE_RANGE_BASE_AFBC_SPLITBLK + 0xff)) || \
-			((x) == ( GRALLOC_ANDROID_PRIVATE_RANGE_BASE_AFBC_SPLITBLK + HAL_PIXEL_FORMAT_YV12)))
-#define GRALLOC_ANDROID_PRIVATE_IN_RANGE_OF_AFBC_WIDEBLK(x) \
-            (((x) > GRALLOC_ANDROID_PRIVATE_RANGE_BASE_AFBC_WIDEBLK && \
-            (x) <= (GRALLOC_ANDROID_PRIVATE_RANGE_BASE_AFBC_WIDEBLK + 0xff)) || \
-            ((x) == ( GRALLOC_ANDROID_PRIVATE_RANGE_BASE_AFBC_WIDEBLK + HAL_PIXEL_FORMAT_YV12)))
-#define GRALLOC_ANDROID_PRIVATE_IN_RANGE_OF_BASE_YUVEXT(x) \
-			(((x & GRALLOC_ARM_INTFMT_FMT_MASK) >= \
-				(GRALLOC_ARM_HAL_FORMAT_INDEXED_Y0L2 + GRALLOC_ANDROID_PRIVATE_RANGE_BASE_YUVEXT)) && \
-			((x & GRALLOC_ARM_INTFMT_FMT_MASK) <= \
-				(GRALLOC_ARM_HAL_FORMAT_INDEXED_YUV422_10BIT_AFBC + GRALLOC_ANDROID_PRIVATE_RANGE_BASE_YUVEXT)))
+#ifndef GRALLOC_DISP_W
+#define GRALLOC_DISP_W 0
+#endif
+#ifndef GRALLOC_DISP_H
+#define GRALLOC_DISP_H 0
+#endif
+
+/* Minimum size of buffer for AFBC to be enabled. Defined as percentage of total
+ * display size */
+#define GRALLOC_AFBC_MIN_SIZE 75
 
 static inline int find_format_index(int format)
 {
@@ -78,19 +71,41 @@ static inline int find_format_index(int format)
 			index = GRALLOC_ARM_HAL_FORMAT_INDEXED_Y16;
 			break;
 #endif
+		case HAL_PIXEL_FORMAT_YCbCr_420_888:
+			index = GRALLOC_ARM_HAL_FORMAT_INDEXED_YCbCr_420_888;
+			break;
 	}
 
 	return index;
 }
 
-// #define GRALLOC_ARM_FORMAT_SELECTION_DISABLE 
+static bool is_afbc_allowed(int buffer_size)
+{
+	bool afbc_allowed = false;
+
+#if !defined(GRALLOC_ARM_NO_EXTERNAL_AFBC)
+	if ((GRALLOC_DISP_W*GRALLOC_DISP_H) != 0)
+	{
+		afbc_allowed = ((buffer_size*100) / (GRALLOC_DISP_W*GRALLOC_DISP_H)) >= GRALLOC_AFBC_MIN_SIZE;
+	}
+	/* If display size is not valid then always allow AFBC */
+	else
+	{
+		afbc_allowed = true;
+	}
+#endif /* defined(GRALLOC_ARM_NO_EXTERNAL_AFBC) */
+
+	return afbc_allowed;
+}
+
 /*
  * Define GRALLOC_ARM_FORMAT_SELECTION_DISABLE to disable the format selection completely
+ * or GRALLOC_ARM_NO_EXTERNAL_AFBC to disable selection of AFBC formats for external buffers.
  */
-uint64_t gralloc_select_format(int req_format, int usage)
+uint64_t gralloc_select_format(int req_format, int usage, int buffer_size)
 {
 #if defined(GRALLOC_ARM_FORMAT_SELECTION_DISABLE)
-#warning "arm_format_selection was disabled!"
+#warning "arm_format_selection is disabled!"
 
 	(void) usage;
 	return (uint64_t) req_format;
@@ -102,6 +117,7 @@ uint64_t gralloc_select_format(int req_format, int usage)
 	int largest_weight_ind=-1;
 	int16_t accum_weights[GRALLOC_ARM_FORMAT_INTERNAL_INDEXED_LAST] = {0};
 	int afbc_split_mode = 0;
+	bool afbc_allowed;
 
 	ALOGV("gralloc_select_format: req_format=0x%x usage=0x%x\n",req_format,usage);
 
@@ -174,6 +190,7 @@ uint64_t gralloc_select_format(int req_format, int usage)
 				case HAL_PIXEL_FORMAT_YV12:
 					result = req_format | GRALLOC_ARM_INTFMT_AFBC_WIDEBLK;
 					break;
+#if 1 == MALI_USE_YUV_AFBC_WIDEBLK
 				case GRALLOC_ARM_HAL_FORMAT_INDEXED_YUV420_8BIT_AFBC:
 				case GRALLOC_ARM_HAL_FORMAT_INDEXED_YUV422_8BIT_AFBC:
 					result = req_format | GRALLOC_ARM_INTFMT_AFBC_WIDEBLK | GRALLOC_ARM_INTFMT_ARM_AFBC_YUV;
@@ -183,6 +200,14 @@ uint64_t gralloc_select_format(int req_format, int usage)
 					result = GRALLOC_ARM_INTFMT_EXTENDED_YUV | GRALLOC_ARM_INTFMT_ARM_AFBC_YUV;
 					result |= (req_format & ( GRALLOC_ARM_INTFMT_FMT_MASK | GRALLOC_ARM_INTFMT_AFBC_WIDEBLK ));
 					break;
+#else
+				case GRALLOC_ARM_HAL_FORMAT_INDEXED_YUV420_8BIT_AFBC:
+				case GRALLOC_ARM_HAL_FORMAT_INDEXED_YUV422_8BIT_AFBC:
+				case GRALLOC_ARM_HAL_FORMAT_INDEXED_YUV420_10BIT_AFBC:
+				case GRALLOC_ARM_HAL_FORMAT_INDEXED_YUV422_10BIT_AFBC:
+					/* invalid format value */
+					return -EINVAL;
+#endif
 				default:
 					ALOGV("Gralloc gets internal HAL pixel format: 0x%llX", (req_format & GRALLOC_ARM_INTFMT_FMT_MASK));
 					result = req_format | GRALLOC_ARM_INTFMT_AFBC_WIDEBLK;
@@ -215,6 +240,12 @@ uint64_t gralloc_select_format(int req_format, int usage)
 		return new_format;
 	}
 
+	/* Implementation defined format set to YCbCr_420_888 interpreted as NV12. */
+	if((req_format == HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED) || (req_format == HAL_PIXEL_FORMAT_YCbCr_420_888))
+	{
+		return HAL_PIXEL_FORMAT_YCbCr_420_888;
+	}
+
 	/* if this format can't be classified in one of the groups we
 	 * have pre-defined, ignore it.
 	 */
@@ -224,6 +255,7 @@ uint64_t gralloc_select_format(int req_format, int usage)
 		return new_format;
 	}
 
+	afbc_allowed = is_afbc_allowed(buffer_size);
 	while( blklist[n].blk_init != 0 )
 	{
 		if( (blklist[n].hwblkconf.usage & usage) != 0 )
@@ -232,7 +264,11 @@ uint64_t gralloc_select_format(int req_format, int usage)
 
 			for(m=GRALLOC_ARM_FORMAT_INTERNAL_INDEXED_FIRST; m<GRALLOC_ARM_FORMAT_INTERNAL_INDEXED_LAST; m++)
 			{
-				if( blklist[n].hwblkconf.weights[intformat_ind][m] != DEFAULT_WEIGHT_UNSUPPORTED )
+				uint64_t internal_format = translate_internal_indexed[m].internal_extended_format;
+				bool is_afbc = internal_format & (GRALLOC_ARM_INTFMT_AFBC | GRALLOC_ARM_INTFMT_AFBC_SPLITBLK |
+				                                  GRALLOC_ARM_INTFMT_AFBC_WIDEBLK | GRALLOC_ARM_INTFMT_ARM_AFBC_YUV);
+
+				if ((blklist[n].hwblkconf.weights[intformat_ind][m] != DEFAULT_WEIGHT_UNSUPPORTED) && (!is_afbc || afbc_allowed))
 				{
 					accum_weights[m] += blklist[n].hwblkconf.weights[intformat_ind][m];
 
