@@ -179,6 +179,15 @@ void set_ion_flags(unsigned int heap_mask, int usage, unsigned int *priv_heap_fl
 #endif
 }
 
+typedef struct _backBufferInfo
+{
+    int usage;
+    size_t size;
+    buffer_handle_t* pHandleBack;
+}backBufferInfo;
+static buffer_handle_t pHandleBack;
+static backBufferInfo mbackBufferInfo={0,0,NULL};
+
 int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle)
 {
 	private_module_t* m = reinterpret_cast<private_module_t*>(dev->common.module);
@@ -354,6 +363,24 @@ void alloc_backend_alloc_free(private_handle_t const* hnd, private_module_t* m)
 	}
 	else if ( hnd->flags & private_handle_t::PRIV_FLAGS_USES_ION )
 	{
+        if(hnd->flags & 0x08000000) {
+            ALOGD("Try to free ion_hnd=0x%x",hnd->ion_hnd);
+            /* Buffer might be unregistered already so we need to assure we have a valid handle*/
+            if ( 0 != hnd->base )
+            {
+                if ( 0 != munmap( (void*)hnd->base, hnd->size ) ) AERR( "Failed to munmap handle %p", hnd );
+            }
+            close( hnd->share_fd );
+
+            if(mbackBufferInfo.size != 0) {
+                if ( 0 != ion_free( m->ion_client, hnd->ion_hnd ) )
+                    AERR( "Failed to ion_free( ion_client: %d ion_hnd: 0x%x )", m->ion_client, hnd->ion_hnd );
+            }
+            ALOGD("has free  single buffer ion_hnd=0x%x",hnd->ion_hnd);
+            memset( (void*)hnd, 0, sizeof( *hnd ) );
+            memset( (void*)&mbackBufferInfo,0,sizeof(backBufferInfo));
+            return;
+        }
 		/* Buffer might be unregistered already so we need to assure we have a valid handle*/
 		if ( 0 != hnd->base )
 		{
@@ -383,9 +410,109 @@ int alloc_backend_close(struct hw_device_t *device)
 	alloc_device_t* dev = reinterpret_cast<alloc_device_t*>(device);
 	if (dev)
 	{
-		private_module_t *m = reinterpret_cast<private_module_t*>(dev->common.module);
-		if ( 0 != ion_close(m->ion_client) ) AERR( "Failed to close ion_client: %d err=%s", m->ion_client , strerror(errno));
+		private_module_t *m = reinterpret_cast<private_module_t *>(device->module);
+		if ( 0 != ion_close(m->ion_client) ) AERR( "Failed to close ion_client: %d", m->ion_client );
+		close(m->ion_client);
 		delete dev;
 	}
 	return 0;
+}
+
+int alloc_from_backbuffer(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle)
+{
+    private_module_t* m = reinterpret_cast<private_module_t*>(dev->common.module);
+	ion_user_handle_t ion_hnd;
+	unsigned char *cpu_ptr;
+	int shared_fd;
+	int ret;
+	unsigned int heap_mask;
+    int Ion_type;
+    bool Ishwc = false;//
+    if(!mbackBufferInfo.pHandleBack)
+    {
+        ret = alloc_backend_alloc(dev,size,usage,&pHandleBack);
+        if(ret)
+        {
+            ALOGE("%s,%d",__FUNCTION__,__LINE__);
+            return ret;
+        }
+        else
+        {
+            mbackBufferInfo.size = size;
+            mbackBufferInfo.usage = usage;
+            mbackBufferInfo.pHandleBack = &pHandleBack;
+        }
+    }
+    else if(usage != mbackBufferInfo.usage || size != mbackBufferInfo.size)
+    {
+        private_handle_t const * hnd = (private_handle_t const*)mbackBufferInfo.pHandleBack;
+        alloc_backend_alloc_free(hnd,m);
+        ret = alloc_backend_alloc(dev,size,usage,&pHandleBack);
+        if(ret)
+        {
+            mbackBufferInfo.size = 0;
+            mbackBufferInfo.usage = 0;
+            mbackBufferInfo.pHandleBack = NULL;
+            ALOGE("%s,%d",__FUNCTION__,__LINE__);
+            return ret;
+        }
+        else
+        {
+            mbackBufferInfo.size = size;
+            mbackBufferInfo.usage = usage;
+            mbackBufferInfo.pHandleBack = &pHandleBack;
+        }
+    }
+    private_handle_t *tmpHandle = (private_handle_t *)*mbackBufferInfo.pHandleBack;
+    ALOGD("-------------------------alloc %p",tmpHandle);
+    ion_hnd = tmpHandle->ion_hnd;
+    Ion_type = tmpHandle->type;
+    //shared_fd = tmpHandle->share_fd;
+    ALOGD("--------------------------------------%s,%d",__FUNCTION__,__LINE__);
+	ret = ion_share( m->ion_client, ion_hnd, &shared_fd);
+    ALOGD("--------------------------------------%s,%d,ion_hnd=%d,shared_fd=%d",__FUNCTION__,__LINE__,ion_hnd,shared_fd);
+	if ( ret != 0 )
+	{
+		AERR( "ion_share( %d ) failed", m->ion_client );
+        ALOGE("%s,%d",__FUNCTION__,__LINE__);
+        if ( 0 != ion_free( m->ion_client, ion_hnd ) ) AERR( "ion_free( %d ) failed", m->ion_client );
+	    return -1;
+	}
+    ALOGD("--------------------------------------%s,%d",__FUNCTION__,__LINE__);
+	cpu_ptr = (unsigned char*)mmap( NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, shared_fd, 0 );
+
+	if ( MAP_FAILED == cpu_ptr )
+	{
+		AERR( "ion_map( %d ) failed", m->ion_client );
+		if ( 0 != ion_free( m->ion_client, ion_hnd ) ) AERR( "ion_free( %d ) failed", m->ion_client );		
+		close( shared_fd );
+        ALOGE("%s,%d",__FUNCTION__,__LINE__);
+		return -1;
+	}
+    ALOGD("--------------------------------------%s,%d",__FUNCTION__,__LINE__);
+	private_handle_t *hnd = new private_handle_t( private_handle_t::PRIV_FLAGS_USES_ION | 0x08000000, usage, size, cpu_ptr, private_handle_t::LOCK_STATE_MAPPED );
+
+	if ( NULL != hnd )
+	{
+		hnd->share_fd = shared_fd;
+		hnd->ion_hnd = ion_hnd;
+		hnd->type = Ion_type;
+		*pHandle = hnd;
+		if(hnd->type== 1)
+		{
+		    ALOGW(" Debugmem The fd=%d, in vmalloc !!!! Ishwc=%d",hnd->share_fd,Ishwc);
+		}
+		return 0;
+	}
+	else
+	{
+		AERR( "Gralloc out of mem for ion_client:%d", m->ion_client );
+	}
+    ALOGD("--------------------------------------%s,%d",__FUNCTION__,__LINE__);
+	close( shared_fd );
+	ret = munmap( cpu_ptr, size );
+	if ( 0 != ret ) AERR( "munmap failed for base:%p size: %zd", cpu_ptr, size );
+	ret = ion_free( m->ion_client, ion_hnd );
+	if ( 0 != ret ) AERR( "ion_free( %d ) failed", m->ion_client );
+	return -1;
 }

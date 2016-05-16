@@ -750,7 +750,7 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
         E("err.");
 		return -EINVAL;
 	}
-
+	ALOGD("-----------------------------START usage=%x",usage);
 	size_t size;       // Size to be allocated for the buffer
 	int byte_stride;   // Stride of the buffer in bytes
 	int pixel_stride;  // Stride of the buffer in pixels - as returned in pStride
@@ -973,6 +973,11 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 	{
 		err = gralloc_alloc_framebuffer(dev, size, usage, pHandle, &pixel_stride, &byte_stride);
 	}
+	else if(usage & 0x08000000)
+	{
+		 ALOGD("---------------------%x",usage);
+		 err = alloc_from_backbuffer(dev, size, usage, pHandle);
+	}
 	else
 	{
 		err = alloc_backend_alloc(dev, size, usage, pHandle);
@@ -1039,19 +1044,28 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 	}
 
 	hnd->req_format = format;
-	hnd->byte_stride = byte_stride;
+	if(byte_stride == 2944)
+		hnd->byte_stride = w;//byte_stride;
+	else
+		hnd->byte_stride = byte_stride;
 	hnd->internal_format = internal_format;
 	hnd->video_width = 0;
 	hnd->video_height = 0;
 	hnd->format = format;
 	hnd->width = w;
 	hnd->height = h;
-	hnd->stride = pixel_stride;
+	if(byte_stride == 2944)
+		hnd->stride = w;
+	else
+		hnd->stride = pixel_stride;
 	hnd->internalWidth = internalWidth;
 	hnd->internalHeight = internalHeight;
 
-    //ALOGD("Isfb=%x,[%d,%d,%d,%d],fmt=%d,byte_stride=%d",usage & GRALLOC_USAGE_HW_FB,hnd->width,hnd->height,hnd->stride,hnd->byte_stride,hnd->format,byte_stride);
-	*pStride = pixel_stride;
+    ALOGD("Isfb=%x,[%d,%d,%d,%d],fmt=%d,byte_stride=%d",usage & GRALLOC_USAGE_HW_FB,hnd->width,hnd->height,hnd->stride,hnd->byte_stride,hnd->format,byte_stride);
+	if(byte_stride == 2944)
+		*pStride = w;//pixel_stride;
+	else
+		*pStride = pixel_stride;
 	return 0;
 }
 
@@ -1059,6 +1073,7 @@ static int alloc_device_free(alloc_device_t* dev, buffer_handle_t handle)
 {
 	if (private_handle_t::validate(handle) < 0)
 	{
+	    ALOGE("alloc deive free handle(%p) fail",handle);
 		return -EINVAL;
 	}
 

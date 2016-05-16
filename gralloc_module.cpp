@@ -45,9 +45,8 @@
 
 #define RK_FBIOGET_IOMMU_STA        0x4632
 
-#define RK_GRALLOC_VERSION "1.0.2"
-#define ARM_RELEASE_VER "r8p0-02rel0"
-
+#define RK_GRALLOC_VERSION "1.0.3"
+#define ARM_RELEASE_VER "r11p0-00rel0"
 
 static pthread_mutex_t s_map_lock = PTHREAD_MUTEX_INITIALIZER;
 int g_MMU_stat = 0;
@@ -324,8 +323,8 @@ private_module_t::private_module_t()
 	base.registerBuffer = gralloc_register_buffer;
 	base.unregisterBuffer = gralloc_unregister_buffer;
 	base.lock = gralloc_lock;
-	base.lock_ycbcr = gralloc_lock_ycbcr;
 	base.unlock = gralloc_unlock;
+	base.lock_ycbcr = gralloc_lock_ycbcr;
 	base.perform = NULL;
 	INIT_ZERO(base.reserved_proc);
 
