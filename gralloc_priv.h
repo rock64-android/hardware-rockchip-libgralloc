@@ -104,6 +104,11 @@ struct fb_dmabuf_export
 #define SZ_4K      0x00001000
 #define SZ_2M      0x00200000
 
+enum {
+       GRALLOC_MODULE_PERFORM_GET_HADNLE_PRIME_FD        = 0x80000001,
+       GRALLOC_MODULE_PERFORM_GET_HADNLE_ATTRIBUTES      = 0x80000002,
+};
+
 typedef enum
 {
 	MALI_YUV_NO_INFO,

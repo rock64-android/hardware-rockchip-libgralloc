@@ -32,6 +32,8 @@
 #include <ion/ion.h>
 #include <sys/mman.h>
 
+#include <vector>
+
 int gralloc_backend_register(private_handle_t* hnd)
 {
 	int retval = -EINVAL;
@@ -137,4 +139,23 @@ void gralloc_backend_sync(private_handle_t* hnd)
 		}
 		break;
 	}
+}
+
+int gralloc_backend_get_fd(private_handle_t* hnd, int *fd)
+{
+	*fd = hnd->share_fd;
+	return 0;
+}
+
+int gralloc_backend_get_attrs(private_handle_t* hnd, void *attrs)
+{
+	std::vector<int> *attributes = (std::vector<int> *)attrs;
+	attributes->clear();
+	attributes->push_back(hnd->width);
+	attributes->push_back(hnd->height);
+	attributes->push_back(hnd->stride);
+	attributes->push_back(hnd->format);
+	attributes->push_back(hnd->size);
+	attributes->push_back(hnd->type);
+	return 0;
 }

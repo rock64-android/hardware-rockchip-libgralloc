@@ -19,3 +19,7 @@ int gralloc_backend_register(struct private_handle_t* hnd);
 void gralloc_backend_unregister(struct private_handle_t* hnd);
 
 void gralloc_backend_sync(struct private_handle_t* hnd);
+
+int gralloc_backend_get_fd(private_handle_t* hnd, int *fd);
+
+int gralloc_backend_get_attrs(private_handle_t* hnd, void *attrs);
