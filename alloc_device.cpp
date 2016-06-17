@@ -355,6 +355,62 @@ static bool get_yv12_stride_and_size(int width, int height, int* pixel_stride, i
 	return true;
 }
 
+static bool get_rk_nv12_stride_and_size(int width, int height, int* pixel_stride, int* byte_stride, size_t* size)
+{
+
+    /**
+     * .KP : from CSY : video_decoder 要求的 byte_stride of buffer in NV12, 已经通过 width 传入.
+     * 对 NV12, byte_stride 就是 pixel_stride, 也就是 luma_stride.
+     */
+	int luma_stride = width;
+
+	if (width % 2 != 0 || height % 2 != 0)
+	{
+		return false;
+	}
+
+	if (size != NULL)
+	{
+        /* .KP : from CSY : video_decoder 需要的 buffer 中除了 YUV 数据还有其他 metadata, 要更多的空间. 2 * w * h 一定够. */
+        *size = 2 * luma_stride * height;
+	}
+
+	if (byte_stride != NULL)
+	{
+		*byte_stride = luma_stride;
+	}
+
+	if (pixel_stride != NULL)
+	{
+		*pixel_stride = luma_stride;
+	}
+
+	return true;
+}
+
+static bool get_rk_nv12_10bit_stride_and_size (int width, int height, int* pixel_stride, int* byte_stride, size_t* size)
+{
+
+	if (width % 2 != 0 || height % 2 != 0)
+	{
+		return false;
+	}
+
+    /**
+     * .KP : from CSY : video_decoder 要求的 byte_stride of buffer in NV12_10, 已经通过 width 传入.
+     * 对 NV12_10, 原理上, byte_stride 和 pixel_stride 不同.
+     */
+	*byte_stride = width;
+
+    /* .KP : from CSY : video_decoder 需要的 buffer 中除了 YUV 数据还有其他 metadata, 要更多的空间. 2 * w * h 一定够. */
+    *size = 2 * width * height;
+
+	*pixel_stride = *byte_stride;
+    // 字面上, 这是错误的,
+    // 但是目前对于 NV12_10, rk_hwc, 将 private_module_t::stride 作为 byte_stride 使用.
+
+	return true;
+}
 /*
  * Computes the strides and size for an AFBC 8BIT YUV 4:2:2 buffer
  *
@@ -851,27 +907,39 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 				break;
 			}
 
+            /*-------------------------------------------------------*/
 				/*
 				 * Additional custom formats can be added here
 				 * and must fill the variables pixel_stride, byte_stride and size.
 				 */
             case HAL_PIXEL_FORMAT_YCrCb_NV12:
-            case HAL_PIXEL_FORMAT_YCrCb_NV12_10:
-            case HAL_PIXEL_FORMAT_YCrCb_NV12_VIDEO:
-                if (!get_yv12_stride_and_size(w, h, &pixel_stride, &byte_stride, &size, type, &internalHeight, YUV_MALI_PLANE_ALIGN))
+                if (!get_rk_nv12_stride_and_size(w, h, &pixel_stride, &byte_stride, &size))
                 {
                     E("err.");
                     return -EINVAL;
                 }
-                D("w : %d, h : %d, byte_stride : %d, size : %d; sizeof(tVPU_FRAME) : %d.", w, h, byte_stride, size, sizeof(tVPU_FRAME) );
+                D("for nv12, w : %d, h : %d, pixel_stride : %d, byte_stride : %d, size : %d; internalHeight : %d.",
+                        w,
+                        h,
+                        pixel_stride,
+                        byte_stride,
+                        size,
+                        internalHeight);
+			    break;
 
-                size += w*h/2 ; // video dec need more buffer 
-                D_DEC(size)
-#if !GET_VPU_INTO_FROM_HEAD
-                //zxl:add tVPU_FRAME at the end of allocated buffer
-                size = size + sizeof(tVPU_FRAME);
-#endif			
-                D_DEC(size)
+            case HAL_PIXEL_FORMAT_YCrCb_NV12_10:
+                if (!get_rk_nv12_10bit_stride_and_size(w, h, &pixel_stride, &byte_stride, &size))
+                {
+                    E("err.");
+                    return -EINVAL;
+                }
+                D("for nv12_10, w : %d, h : %d, pixel_stride : %d, byte_stride : %d, size : %d; internalHeight : %d.",
+                        w,
+                        h,
+                        pixel_stride,
+                        byte_stride,
+                        size,
+                        internalHeight);
 			    break;
 
 			default:
