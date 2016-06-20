@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle);
+int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle, uint64_t fmt, int w, int h);
 
 int alloc_backend_alloc_framebuffer(struct private_module_t* m, struct private_handle_t* hnd);
 
@@ -24,5 +24,5 @@ int alloc_backend_open(alloc_device_t *dev);
 
 int alloc_backend_close(struct hw_device_t *device);
 
-int alloc_from_backbuffer(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle);
+int alloc_from_backbuffer(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle, uint64_t fmt, int w, int h);
 

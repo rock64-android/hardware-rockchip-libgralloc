@@ -32,6 +32,8 @@
 #include "gralloc_helper.h"
 #include "framebuffer_device.h"
 
+#include "format_chooser.h"
+
 #include <linux/ion.h>
 #include <ion/ion.h>
 #include <linux/rockchip_ion.h>
@@ -42,6 +44,52 @@
 extern int g_MMU_stat;
 
 /*---------------------------------------------------------------------------*/
+
+
+static void init_afbc(uint8_t *buf, uint64_t format, int w, int h)
+{
+	uint32_t n_headers = (w * h) / 64;
+	uint32_t body_offset = n_headers * 16;
+	uint32_t headers[][4] = { {body_offset, 0x1, 0x0, 0x0}, /* Layouts 0, 3, 4 */
+	                          {(body_offset + (1 << 28)), 0x200040, 0x4000, 0x80} /* Layouts 1, 5 */
+	                        };
+	int i, layout;
+
+	/* map format if necessary */
+	uint64_t mapped_format = map_format(format & GRALLOC_ARM_INTFMT_FMT_MASK);
+
+	switch (mapped_format)
+	{
+		case HAL_PIXEL_FORMAT_RGBA_8888:
+		case HAL_PIXEL_FORMAT_RGBX_8888:
+		case HAL_PIXEL_FORMAT_RGB_888:
+		case HAL_PIXEL_FORMAT_RGB_565:
+		case HAL_PIXEL_FORMAT_BGRA_8888:
+#if (PLATFORM_SDK_VERSION >= 19) && (PLATFORM_SDK_VERSION <= 22)
+		case HAL_PIXEL_FORMAT_sRGB_A_8888:
+		case HAL_PIXEL_FORMAT_sRGB_X_8888:
+#endif
+			layout = 0;
+			break;
+
+		case HAL_PIXEL_FORMAT_YV12:
+		case GRALLOC_ARM_HAL_FORMAT_INDEXED_NV12:
+		case GRALLOC_ARM_HAL_FORMAT_INDEXED_NV21:
+			layout = 1;
+			break;
+		default:
+			layout = 0;
+	}
+
+	ALOGV("Writing AFBC header layout %d for format %llx", layout, format);
+
+	for (i = 0; i < n_headers; i++)
+	{
+		memcpy(buf, headers[layout], sizeof(headers[layout]));
+		buf += sizeof(headers[layout]);
+	}
+
+}
 
 static ion_user_handle_t alloc_from_ion_heap(int ion_fd, size_t size, unsigned int heap_mask,
 		unsigned int flags, int *min_pgsz)
@@ -126,12 +174,12 @@ unsigned int pick_ion_heap(int usage)
 #endif
 	}
 #if defined(ION_HEAP_TYPE_COMPOUND_PAGE_MASK) && GRALLOC_USE_ION_COMPOUND_PAGE_HEAP
-	else if(usage & (GRALLOC_USAGE_HW_FB | GRALLOC_USAGE_HW_COMPOSER))
+	else if(!(usage & GRALLOC_USAGE_HW_VIDEO_ENCODER) && (usage & (GRALLOC_USAGE_HW_FB | GRALLOC_USAGE_HW_COMPOSER)))
 	{
 		heap_mask = ION_HEAP_TYPE_COMPOUND_PAGE_MASK;
 	}
 #elif defined(ION_HEAP_TYPE_DMA_MASK) && GRALLOC_USE_ION_DMA_HEAP
-	else if(usage & (GRALLOC_USAGE_HW_FB | GRALLOC_USAGE_HW_COMPOSER))
+	else if(!(usage & GRALLOC_USAGE_HW_VIDEO_ENCODER) && (usage & (GRALLOC_USAGE_HW_FB | GRALLOC_USAGE_HW_COMPOSER)))
 	{
 		heap_mask = ION_HEAP_TYPE_DMA_MASK;
 	}
@@ -188,7 +236,7 @@ typedef struct _backBufferInfo
 static buffer_handle_t pHandleBack;
 static backBufferInfo mbackBufferInfo={0,0,NULL};
 
-int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle)
+int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle, uint64_t fmt, int w, int h)
 {
 	private_module_t* m = reinterpret_cast<private_module_t*>(dev->common.module);
 	ion_user_handle_t ion_hnd;
@@ -272,6 +320,13 @@ int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_hand
 			return -1;
 		}
 		lock_state = private_handle_t::LOCK_STATE_MAPPED;
+
+#if GRALLOC_INIT_AFBC == 1
+		if (fmt & (GRALLOC_ARM_INTFMT_AFBC | GRALLOC_ARM_INTFMT_AFBC_SPLITBLK | GRALLOC_ARM_INTFMT_AFBC_WIDEBLK))
+		{
+			init_afbc(cpu_ptr, fmt, w, h);
+		}
+#endif /* GRALLOC_INIT_AFBC == 1 */
 	}
 
 	private_handle_t *hnd = new private_handle_t( private_handle_t::PRIV_FLAGS_USES_ION | priv_heap_flag, usage, size, cpu_ptr,
@@ -418,7 +473,7 @@ int alloc_backend_close(struct hw_device_t *device)
 	return 0;
 }
 
-int alloc_from_backbuffer(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle)
+int alloc_from_backbuffer(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle, uint64_t fmt, int w, int h)
 {
     private_module_t* m = reinterpret_cast<private_module_t*>(dev->common.module);
 	ion_user_handle_t ion_hnd;
@@ -430,7 +485,7 @@ int alloc_from_backbuffer(alloc_device_t* dev, size_t size, int usage, buffer_ha
     bool Ishwc = false;//
     if(!mbackBufferInfo.pHandleBack)
     {
-        ret = alloc_backend_alloc(dev,size,usage,&pHandleBack);
+        ret = alloc_backend_alloc(dev, size, usage, &pHandleBack, fmt, w, h);
         if(ret)
         {
             ALOGE("%s,%d",__FUNCTION__,__LINE__);
@@ -447,7 +502,7 @@ int alloc_from_backbuffer(alloc_device_t* dev, size_t size, int usage, buffer_ha
     {
         private_handle_t const * hnd = (private_handle_t const*)mbackBufferInfo.pHandleBack;
         alloc_backend_alloc_free(hnd,m);
-        ret = alloc_backend_alloc(dev,size,usage,&pHandleBack);
+        ret = alloc_backend_alloc(dev, size, usage, &pHandleBack, fmt, w, h);
         if(ret)
         {
             mbackBufferInfo.size = 0;

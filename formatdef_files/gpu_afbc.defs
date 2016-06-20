@@ -18,7 +18,7 @@
 
 static void gpu_afbc_read_blkinit(struct hwblk *blk,int16_t **array)
 {
-	/* Initialiaze GPU default weight setup */
+	/* Initialize GPU default weight setup */
 	gpu_read_blkinit(blk, array);
 
 	(*array)[GRALLOC_ARM_FORMAT_INTERNAL_INDEXED_RGBA_8888_AFBC] = DEFAULT_WEIGHT_MOST_PREFERRED;
@@ -39,7 +39,7 @@ static void gpu_afbc_read_blkinit(struct hwblk *blk,int16_t **array)
 
 static void gpu_afbc_write_blkinit(struct hwblk *blk,int16_t **array)
 {
-	/* Initialiaze GPU default weight setup */
+	/* Initialize GPU default weight setup */
 	gpu_write_blkinit(blk, array);
 
 	(*array)[GRALLOC_ARM_FORMAT_INTERNAL_INDEXED_RGBA_8888_AFBC] = DEFAULT_WEIGHT_MOST_PREFERRED;

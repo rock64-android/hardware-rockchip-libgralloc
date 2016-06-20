@@ -95,7 +95,11 @@ struct fb_dmabuf_export
 
 #define NUM_INTS_IN_PRIVATE_HANDLE ((sizeof(struct private_handle_t) - sizeof(native_handle)) / sizeof(int) - sNumFds)
 
-
+enum
+{
+	/* Buffer won't be allocated as AFBC */
+	GRALLOC_ARM_USAGE_NO_AFBC = GRALLOC_USAGE_PRIVATE_1 | GRALLOC_USAGE_PRIVATE_2
+};
 
 #if GRALLOC_ARM_UMP_MODULE
 #include <ump/ump.h>

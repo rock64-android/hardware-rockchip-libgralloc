@@ -26,4 +26,14 @@ inline size_t round_up_to_page_size(size_t x)
     return (x + (PAGE_SIZE-1)) & ~(PAGE_SIZE-1);
 }
 
+/* map the flexible yuv format to the underlying format */
+inline uint64_t map_format( uint64_t format )
+{
+	if (HAL_PIXEL_FORMAT_YCbCr_420_888 == format)
+	{
+		format = GRALLOC_MAPPED_HAL_PIXEL_FORMAT_YCbCr_420_888;
+	}
+	return format;
+}
+
 #endif /* GRALLOC_HELPER_H_ */

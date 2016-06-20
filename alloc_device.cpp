@@ -46,6 +46,8 @@
 #include "gralloc_buffer_priv.h"
 #endif
 
+#include "format_chooser.h"
+
 #define AFBC_PIXELS_PER_BLOCK                    16
 #define AFBC_BODY_BUFFER_BYTE_ALIGNMENT          1024
 #define AFBC_HEADER_BUFFER_BYTES_PER_BLOCKENTRY  16
@@ -92,7 +94,7 @@ static int gralloc_alloc_framebuffer_locked(alloc_device_t* dev, size_t size, in
 		int newUsage = (usage & ~GRALLOC_USAGE_HW_FB) | GRALLOC_USAGE_HW_2D;
 		AWAR( "fallback to single buffering. Virtual Y-res too small %d", m->info.yres );
 		*byte_stride = GRALLOC_ALIGN(m->finfo.line_length, 64);
-		return alloc_backend_alloc(dev, alignedFramebufferSize, newUsage, pHandle);
+		return alloc_backend_alloc(dev, alignedFramebufferSize, newUsage, pHandle, 0, 0, 0);
 	}
 
 	if (bufferMask >= ((1LU<<numBuffers)-1))
@@ -131,7 +133,7 @@ static int gralloc_alloc_framebuffer_locked(alloc_device_t* dev, size_t size, in
 		int newUsage = (usage & ~GRALLOC_USAGE_HW_FB) | GRALLOC_USAGE_HW_2D;
 		AERR( "Fallback to single buffering. Unable to map framebuffer memory to handle:%p", hnd );
 		*byte_stride = GRALLOC_ALIGN(m->finfo.line_length, 64);
-		return alloc_backend_alloc(dev, alignedFramebufferSize, newUsage, pHandle);
+		return alloc_backend_alloc(dev, alignedFramebufferSize, newUsage, pHandle, 0, 0, 0);
 	}
 
 	*pHandle = hnd;
@@ -879,10 +881,13 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 		}
 	}
 
+	/* map format if necessary */
+	uint64_t mapped_format = map_format(internal_format & GRALLOC_ARM_INTFMT_FMT_MASK);
+
     /* 若 internal_format "不是" extended_yuv_fmt 且 "不是" arm_afbc_yuv. 则... */
 	if (!alloc_for_extended_yuv && !alloc_for_arm_afbc_yuv)
 	{
-		switch (internal_format & GRALLOC_ARM_INTFMT_FMT_MASK)
+		switch (mapped_format)
 		{
 			case HAL_PIXEL_FORMAT_RGBA_8888:
 			case HAL_PIXEL_FORMAT_RGBX_8888:
@@ -905,8 +910,9 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 				break;
 
 			case HAL_PIXEL_FORMAT_YCrCb_420_SP:
-			case HAL_PIXEL_FORMAT_YCbCr_420_888:
 			case HAL_PIXEL_FORMAT_YV12:
+			case GRALLOC_ARM_HAL_FORMAT_INDEXED_NV12:
+			case GRALLOC_ARM_HAL_FORMAT_INDEXED_NV21:
 			{
 				// Mali subsystem prefers higher stride alignment values (128b) for YUV, but software components assume default of 16.
 				// We only need to care about YV12 as it's the only, implicit, HAL YUV format in Android.
@@ -967,7 +973,7 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
     /* 否则, 即 internal_format "是" extended_yuv_fmt. 则... */
 	else
 	{
-		switch (internal_format & GRALLOC_ARM_INTFMT_FMT_MASK)
+		switch (mapped_format)
 		{
 			case GRALLOC_ARM_HAL_FORMAT_INDEXED_Y0L2:
 				/* YUYAAYUVAA 4:2:0 */
@@ -1061,11 +1067,11 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 	else if(usage & 0x08000000)
 	{
 		 ALOGD("---------------------%x",usage);
-		 err = alloc_from_backbuffer(dev, size, usage, pHandle);
+		 err = alloc_from_backbuffer(dev, size, usage, pHandle, internal_format, w, h);
 	}
 	else
 	{
-		err = alloc_backend_alloc(dev, size, usage, pHandle);
+		err = alloc_backend_alloc(dev, size, usage, pHandle, internal_format, w, h);
 	}
 
 	if (err < 0)

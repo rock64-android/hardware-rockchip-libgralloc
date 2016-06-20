@@ -84,7 +84,7 @@ static int __ump_alloc_should_fail()
 }
 #endif
 
-int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle)
+int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle, uint64_t fmt, int w, int h)
 {
 	{
 		ump_handle ump_mem_handle;
