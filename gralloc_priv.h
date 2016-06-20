@@ -182,7 +182,7 @@ struct private_module_t
 #endif
 
 #if MALI_PRODUCT_ID_T76X == 1 && MALI_AFBC_GRALLOC != 1
-#error "we must NOT enable AFBC for mali-t760."
+#error "we must enable AFBC for mali-t760."
 #endif
 
 #if MALI_PRODUCT_ID_T72X == 1 && MALI_AFBC_GRALLOC == 1
