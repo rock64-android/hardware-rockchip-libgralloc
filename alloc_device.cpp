@@ -808,6 +808,8 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 	}
 	ALOGD("-----------------------------START usage=%x",usage);
 	size_t size;       // Size to be allocated for the buffer
+	bool fmt_chg = false;
+	int fmt_bak = format;
 	int byte_stride;   // Stride of the buffer in bytes
 	int pixel_stride;  // Stride of the buffer in pixels - as returned in pStride
 	uint64_t internal_format;
@@ -827,6 +829,21 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 #endif
 	}
 #endif
+
+	if(format == HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED  )
+	{
+		if(usage & GRALLOC_USAGE_HW_VIDEO_ENCODER )
+		{
+			ALOGD("(usage & GRALLOC_USAGE_HW_VIDEO_ENCODER treat as NV12");
+			format = HAL_PIXEL_FORMAT_YCrCb_NV12;
+		}
+		else
+		{
+			ALOGD("treat as NV12 888");
+			format = HAL_PIXEL_FORMAT_RGBX_8888;
+			fmt_chg = true;
+		}
+	}
 
 	/* Some formats require an internal width and height that may be used by
 	 * consumers/producers.
@@ -1119,7 +1136,7 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 	hnd->internal_format = internal_format;
 	hnd->video_width = 0;
 	hnd->video_height = 0;
-	hnd->format = format;
+	hnd->format = fmt_chg ? fmt_bak : format;
 	hnd->width = w;
 	hnd->height = h;
 	if(byte_stride == 2944)
