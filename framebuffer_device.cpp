@@ -35,6 +35,8 @@
 #include "gralloc_priv.h"
 #include "gralloc_helper.h"
 #include "gralloc_vsync.h"
+#include <cutils/properties.h>
+
 
 // numbers of buffers for page flipping
 #define NUM_BUFFERS NUM_FB_BUFFERS 
@@ -46,6 +48,22 @@ enum
 };
 
 
+static int hwc_get_int_property(const char* pcProperty,const char* default_value)
+{
+    char value[PROPERTY_VALUE_MAX];
+    int new_value = 0;
+
+    if(pcProperty == NULL || default_value == NULL)
+    {
+        ALOGE("hwc_get_int_property: invalid param");
+        return -1;
+    }
+
+    property_get(pcProperty, value, default_value);
+    new_value = atoi(value);
+
+    return new_value;
+}
 static int fb_set_swap_interval(struct framebuffer_device_t* dev, int interval)
 {
 	if (interval < dev->minSwapInterval)
@@ -275,7 +293,19 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	info.nonstd &= 0xffffff00;
 	info.nonstd |= HAL_PIXEL_FORMAT_RGBX_8888;
 #endif
+    int vir_w =  hwc_get_int_property("sys.vr.vir_w","0");
+    int vir_h =  hwc_get_int_property("sys.vr.vir_h","0");
 
+    if(vir_w && vir_h)
+    {
+        info.xres = vir_w;//3840;       
+        info.yres = vir_h;//2160;      
+        info.xres_virtual =  info.xres;
+        info.yres_virtual = info.yres * 3;
+        //finfo.line_length = info.xres * 4;
+    }
+    
+	/*
 	/*
 	 * Request NUM_BUFFERS screens (at lest 2 for page flipping)
 	 */
@@ -334,7 +364,9 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	float xdpi = (info.xres * 25.4f) / info.width;
 	float ydpi = (info.yres * 25.4f) / info.height;
 	float fps  = refreshRate / 1000.0f;
-
+	ALOGD("ori dpi[%f,%f]",xdpi,ydpi);
+	//xdpi =  xdpi *1.2;
+	//ydpi = ydpi *1.2;
 	AINF("using (fd=%d)\n"
 	     "id           = %s\n"
 	     "xres         = %d px\n"

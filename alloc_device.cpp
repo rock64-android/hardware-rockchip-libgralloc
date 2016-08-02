@@ -801,14 +801,14 @@ static bool get_yuv422_10bit_afbc_stride_and_size(int width, int height, int* pi
 
 static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int usage, buffer_handle_t* pHandle, int* pStride)
 {
-    D("enter, w : %d, h : %d, format : 0x%x, usage : 0x%x.", w, h, format, usage);
+   // D("enter, w : %d, h : %d, format : 0x%x, usage : 0x%x.", w, h, format, usage);
 
 	if (!pHandle || !pStride)
 	{
         E("err.");
 		return -EINVAL;
 	}
-	ALOGD("-----------------------------START usage=%x",usage);
+	//ALOGD("-----------------------------START usage=%x",usage);
 	size_t size;       // Size to be allocated for the buffer
 	bool fmt_chg = false;
 	int fmt_bak = format;
@@ -1064,11 +1064,12 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 	{
 		err = gralloc_alloc_framebuffer(dev, size, usage, pHandle, &pixel_stride, &byte_stride);
 	}
+	/*
 	else if(usage & 0x08000000)
 	{
 		 ALOGD("---------------------%x",usage);
 		 err = alloc_from_backbuffer(dev, size, usage, pHandle, internal_format, w, h);
-	}
+	}*/
 	else
 	{
 		err = alloc_backend_alloc(dev, size, usage, pHandle, internal_format, w, h);
@@ -1152,7 +1153,7 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 	hnd->internalWidth = internalWidth;
 	hnd->internalHeight = internalHeight;
 
-    ALOGD("Isfb=%x,[%d,%d,%d,%d],fmt=%d,byte_stride=%d",usage & GRALLOC_USAGE_HW_FB,hnd->width,hnd->height,hnd->stride,hnd->byte_stride,hnd->format,byte_stride);
+   // ALOGD("Isfb=%x,[%d,%d,%d,%d],fmt=%d,byte_stride=%d",usage & GRALLOC_USAGE_HW_FB,hnd->width,hnd->height,hnd->stride,hnd->byte_stride,hnd->format,byte_stride);
 	if(byte_stride == 2944)
 		*pStride = w;//pixel_stride;
 	else

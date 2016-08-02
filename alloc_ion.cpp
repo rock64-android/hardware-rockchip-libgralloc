@@ -340,11 +340,11 @@ int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_hand
 		hnd->min_pgsz = min_pgsz;
 
 		*pHandle = hnd;
-		
+		/*
 		if ( hnd->type == 1)
 		{
 			ALOGW(" Debugmem The fd=%d, in vmalloc !!!!",hnd->share_fd);
-		}
+		}*/
 		return 0;
 	}
 	else
