@@ -293,13 +293,13 @@ int init_frame_buffer_locked(struct private_module_t* module)
 	info.nonstd &= 0xffffff00;
 	info.nonstd |= HAL_PIXEL_FORMAT_RGBX_8888;
 #endif
-    int vir_w =  hwc_get_int_property("sys.vr.vir_w","0");
-    int vir_h =  hwc_get_int_property("sys.vr.vir_h","0");
+    int xxx_w =  hwc_get_int_property("sys.xxx.x_w","0");
+    int xxx_h =  hwc_get_int_property("sys.xxx.x_h","0");
 
-    if(vir_w && vir_h)
+    if(xxx_w && xxx_h)
     {
-        info.xres = vir_w;//3840;       
-        info.yres = vir_h;//2160;      
+        info.xres = xxx_w;//3840;       
+        info.yres = xxx_h;//2160;      
         info.xres_virtual =  info.xres;
         info.yres_virtual = info.yres * 3;
         //finfo.line_length = info.xres * 4;
