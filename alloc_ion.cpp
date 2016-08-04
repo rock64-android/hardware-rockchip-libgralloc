@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+// #define ENABLE_DEBUG_LOG
+#include <log/custom_log.h>
+
 #include <string.h>
 #include <errno.h>
 #include <pthread.h>
@@ -324,6 +327,7 @@ int alloc_backend_alloc(alloc_device_t* dev, size_t size, int usage, buffer_hand
 #if GRALLOC_INIT_AFBC == 1
 		if (fmt & (GRALLOC_ARM_INTFMT_AFBC | GRALLOC_ARM_INTFMT_AFBC_SPLITBLK | GRALLOC_ARM_INTFMT_AFBC_WIDEBLK))
 		{
+            I("to init buffer in afbc format.");
 			init_afbc(cpu_ptr, fmt, w, h);
 		}
 #endif /* GRALLOC_INIT_AFBC == 1 */

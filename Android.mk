@@ -238,6 +238,10 @@ LOCAL_SRC_FILES := \
 
 # LOCAL_MODULE_OWNER := arm
 
+ifeq ($(strip $(BOARD_USE_AFBC_LAYER)),true)
+LOCAL_CFLAGS += -DUSE_AFBC_LAYER
+endif
+
 include $(BUILD_SHARED_LIBRARY)
 
 endif		# ifneq ($(strip $(TARGET_BOARD_PLATFORM)), rk3368)

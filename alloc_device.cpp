@@ -858,6 +858,14 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 	alloc_for_extended_yuv = (internal_format & GRALLOC_ARM_INTFMT_EXTENDED_YUV) == GRALLOC_ARM_INTFMT_EXTENDED_YUV;
 	alloc_for_arm_afbc_yuv = (internal_format & GRALLOC_ARM_INTFMT_ARM_AFBC_YUV) == GRALLOC_ARM_INTFMT_ARM_AFBC_YUV;
 
+#ifdef USE_AFBC_LAYER
+#define MAGIC_USAGE_TO_USE_AFBC_LAYER     (0x88)
+    if ( MAGIC_USAGE_TO_USE_AFBC_LAYER == (usage & MAGIC_USAGE_TO_USE_AFBC_LAYER) ) {
+        internal_format = GRALLOC_ARM_INTFMT_AFBC | GRALLOC_ARM_HAL_FORMAT_INDEXED_RGBA_8888;
+        W("use_afbc_layer: force to set 'internal_format' to 0x%llx for usage '0x%x'.", internal_format, usage);
+    }
+#endif
+
 	if (internal_format & (GRALLOC_ARM_INTFMT_AFBC | GRALLOC_ARM_INTFMT_AFBC_SPLITBLK | GRALLOC_ARM_INTFMT_AFBC_WIDEBLK))
 	{
 		if (usage & GRALLOC_USAGE_PRIVATE_2)
