@@ -1144,28 +1144,27 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 	}
 
 	hnd->req_format = format;
-	if(byte_stride == 2944)
-		hnd->byte_stride = w;//byte_stride;
-	else
-		hnd->byte_stride = byte_stride;
+	hnd->stride = pixel_stride;
+	hnd->byte_stride = byte_stride;
 	hnd->internal_format = internal_format;
 	hnd->video_width = 0;
 	hnd->video_height = 0;
 	hnd->format = fmt_chg ? fmt_bak : format;
 	hnd->width = w;
 	hnd->height = h;
-	if(byte_stride == 2944)
-		hnd->stride = w;
-	else
-		hnd->stride = pixel_stride;
 	hnd->internalWidth = internalWidth;
 	hnd->internalHeight = internalHeight;
 
-   // ALOGD("Isfb=%x,[%d,%d,%d,%d],fmt=%d,byte_stride=%d",usage & GRALLOC_USAGE_HW_FB,hnd->width,hnd->height,hnd->stride,hnd->byte_stride,hnd->format,byte_stride);
-	if(byte_stride == 2944)
-		*pStride = w;//pixel_stride;
-	else
-		*pStride = pixel_stride;
+    ALOGD("Isfb=%llx, [%d,%d,%d,%d], fmt=%d, byte_stride=%d",
+            usage & GRALLOC_USAGE_HW_FB,
+            hnd->width,
+            hnd->height,
+            hnd->stride,
+            hnd->byte_stride,
+            hnd->format,
+            byte_stride);
+
+	*pStride = pixel_stride;
 	return 0;
 }
 
