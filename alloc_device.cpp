@@ -801,7 +801,7 @@ static bool get_yuv422_10bit_afbc_stride_and_size(int width, int height, int* pi
 
 static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int usage, buffer_handle_t* pHandle, int* pStride)
 {
-   // D("enter, w : %d, h : %d, format : 0x%x, usage : 0x%x.", w, h, format, usage);
+    D("enter, w : %d, h : %d, format : 0x%x, usage : 0x%x.", w, h, format, usage);
 
 	if (!pHandle || !pStride)
 	{
@@ -824,7 +824,6 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 	if (usage & GRALLOC_USAGE_HW_FB)
 	{
 #ifdef GRALLOC_16_BITS
-#error
 		format = HAL_PIXEL_FORMAT_RGB_565;
 #else
 		format = HAL_PIXEL_FORMAT_BGRA_8888;
@@ -863,6 +862,11 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
     if ( MAGIC_USAGE_TO_USE_AFBC_LAYER == (usage & MAGIC_USAGE_TO_USE_AFBC_LAYER) ) {
         internal_format = GRALLOC_ARM_INTFMT_AFBC | GRALLOC_ARM_HAL_FORMAT_INDEXED_RGBA_8888;
         W("use_afbc_layer: force to set 'internal_format' to 0x%llx for usage '0x%x'.", internal_format, usage);
+    }
+
+    if (usage & GRALLOC_USAGE_HW_FB) {
+        internal_format = GRALLOC_ARM_INTFMT_AFBC | GRALLOC_ARM_HAL_FORMAT_INDEXED_RGBA_8888;
+        W("use_afbc_layer: force to set 'internal_format' to 0x%llx for buffer_for_fb_target_layer.");
     }
 #endif
 
@@ -1070,7 +1074,16 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 
 	if (usage & GRALLOC_USAGE_HW_FB)
 	{
+#ifdef USE_AFBC_LAYER
+		err = alloc_backend_alloc(dev, size, usage, pHandle, internal_format, w, h);
+        /**
+         * .trick : vop_of_3399 无法处理 有 offset 的 buffer_of_afbc_layer, 否则会触发异常中断 post_buf_empty_intr.
+         *          而从 'framebuffer' 获取的 buffer 会带有 offset 属性, 将有问题.
+         *          所以这里从 ion 分配无 offset 的 buffer.
+         */
+#else
 		err = gralloc_alloc_framebuffer(dev, size, usage, pHandle, &pixel_stride, &byte_stride);
+#endif
 	}
 	/*
 	else if(usage & 0x08000000)
