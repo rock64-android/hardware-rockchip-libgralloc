@@ -278,6 +278,14 @@ static int gralloc_lock_ycbcr(gralloc_module_t const* module, buffer_handle_t ha
 				break;
 			}
 
+            case HAL_PIXEL_FORMAT_YCrCb_NV12:
+				c_stride = y_stride;
+				/* Y plane, UV plane */
+				u_offset = y_size;
+				v_offset = y_size + 1;
+				step = 2;
+				break;
+
 			default:
 				AERR("Can't lock buffer %p: wrong format %llx", hnd, hnd->internal_format);
 				return -EINVAL;
