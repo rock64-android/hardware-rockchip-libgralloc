@@ -58,8 +58,8 @@ static void init_afbc(uint8_t *buf, uint64_t format, int w, int h)
 	                        };
 	int i, layout;
 
-	/* map format if necessary */
-	uint64_t mapped_format = map_format(format & GRALLOC_ARM_INTFMT_FMT_MASK);
+	/* map format if necessary (also removes internal extension bits) */
+	uint64_t mapped_format = map_format(format);
 
 	switch (mapped_format)
 	{

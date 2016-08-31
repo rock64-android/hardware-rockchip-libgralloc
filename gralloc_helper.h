@@ -26,12 +26,28 @@ inline size_t round_up_to_page_size(size_t x)
     return (x + (PAGE_SIZE-1)) & ~(PAGE_SIZE-1);
 }
 
-/* map the flexible yuv format to the underlying format */
+/** @brief Maps an Android flexible YUV format to the underlying format.
+ *
+ * @param format The format, including the internal format extension bits.
+ *
+ * @returns The mapped format, without the internal format extension bits.
+ */
 inline uint64_t map_format( uint64_t format )
 {
-	if (HAL_PIXEL_FORMAT_YCbCr_420_888 == format)
+	/* Extended YUV in gralloc_arm_hal_index_format enum overlaps Android's HAL_PIXEL_FORMAT enum so check for this first */
+	int extended_yuv = (format & GRALLOC_ARM_INTFMT_EXTENDED_YUV) == GRALLOC_ARM_INTFMT_EXTENDED_YUV;
+
+	/* Lose the extension bits */
+	format &= GRALLOC_ARM_INTFMT_FMT_MASK;
+
+	if (!extended_yuv)
 	{
-		format = GRALLOC_MAPPED_HAL_PIXEL_FORMAT_YCbCr_420_888;
+		switch(format)
+		{
+		case HAL_PIXEL_FORMAT_YCbCr_420_888: 
+			format = GRALLOC_MAPPED_HAL_PIXEL_FORMAT_YCbCr_420_888;
+			break;
+		}
 	}
 	return format;
 }

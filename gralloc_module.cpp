@@ -235,15 +235,17 @@ static int gralloc_lock_ycbcr(gralloc_module_t const* module, buffer_handle_t ha
 	{
 		char* base = (char*)hnd->base;
 		int y_stride = hnd->byte_stride;
-		int y_size =  y_stride * hnd->height;
+		/* Ensure height is aligned for subsampled chroma before calculating buffer parameters */
+		int adjusted_height = GRALLOC_ALIGN(hnd->height, 2);
+		int y_size =  y_stride * adjusted_height;
 
 		int u_offset = 0;
 		int v_offset = 0;
 		int c_stride = 0;
 		int step = 0;
 
-		/* map format if necessary */
-		uint64_t mapped_format = map_format(hnd->internal_format & GRALLOC_ARM_INTFMT_FMT_MASK);
+		/* Map format if necessary (also removes internal extension bits) */
+		uint64_t mapped_format = map_format(hnd->internal_format);
 
 		switch (mapped_format)
 		{
@@ -270,7 +272,7 @@ static int gralloc_lock_ycbcr(gralloc_module_t const* module, buffer_handle_t ha
 
 				/* Stride alignment set to 16 as the SW access flags were set */
 				c_stride = GRALLOC_ALIGN(hnd->byte_stride / 2, 16);
-				c_size = c_stride * (hnd->height / 2);
+				c_size = c_stride * (adjusted_height / 2);
 				/* Y plane, V plane, U plane */
 				v_offset = y_size;
 				u_offset = y_size + c_size;

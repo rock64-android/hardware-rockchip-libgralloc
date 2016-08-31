@@ -241,16 +241,18 @@ static void get_rgb_stride_and_size(int width, int height, int pixel_size,
  * byte_stride    (out) stride of the buffer in bytes
  * size           (out) size of the buffer in bytes
  * type                 if buffer should be allocated for a certain afbc type
- * internalHeight (out) Will store internal height if it is required to have a greater height than
- *                      known to public. If not it will be left untouched.
+ * internalHeight (out) The internal height, which may be greater than the public known height.
  */
-static bool get_afbc_yuv420_8bit_stride_and_size(int width, int height, int* pixel_stride, int* byte_stride, size_t* size, AllocType type, int *internalHeight)
+static bool get_afbc_yuv420_8bit_stride_and_size(int width, int height, int* pixel_stride, int* byte_stride,
+                                                 size_t* size, AllocType type, int *internalHeight)
 {
 	int yuv420_afbc_luma_stride, yuv420_afbc_chroma_stride;
 
+	*internalHeight = height;
+
 	if (type == UNCOMPRESSED)
 	{
-		AERR(" Buffer must be allocated with AFBC mode for internal pixel format YUV420_10BIT_AFBC!");
+		AERR(" Buffer must be allocated with AFBC mode for internal pixel format YUV420_8BIT_AFBC!");
 		return false;
 	}
 
@@ -315,25 +317,22 @@ static bool get_afbc_yuv420_8bit_stride_and_size(int width, int height, int* pix
  * byte_stride      (out) stride of the buffer in bytes
  * size             (out) size of the buffer in bytes
  * type             (in)  if buffer should be allocated for a certain afbc type
- * internalHeight   (out) Will store internal height if it is required to have a greater height than
- *                        known to public. If not it will be left untouched.
+ * internalHeight   (out) The internal height, which may be greater than the public known height.
  * stride_alignment (in)  stride aligment value in bytes.
  */
-static bool get_yv12_stride_and_size(int width, int height, int* pixel_stride, int* byte_stride,
-		                     size_t* size, AllocType type, int* internalHeight, int stride_alignment)
+static bool get_yv12_stride_and_size(int width, int height, int* pixel_stride, int* byte_stride, size_t* size,
+                                     AllocType type, int* internalHeight, int stride_alignment)
 {
 	int luma_stride;
-
-	/* Android assumes the width and height are even withou checking, so we check here */
-	if (width % 2 != 0 || height % 2 != 0)
-	{
-		return false;
-	}
 
 	if (type != UNCOMPRESSED)
 	{
 		return get_afbc_yuv420_8bit_stride_and_size(width, height, pixel_stride, byte_stride, size, type, internalHeight);
 	}
+
+	/* 4:2:0 formats must have buffers with even height and width as the clump size is 2x2 pixels.
+	 * Width will be even stride aligned anyway so just adjust height here for size calculation. */
+	height = GRALLOC_ALIGN(height, 2);
 
 	luma_stride = GRALLOC_ALIGN(width, stride_alignment);
 
@@ -352,6 +351,43 @@ static bool get_yv12_stride_and_size(int width, int height, int* pixel_stride, i
 	if (pixel_stride != NULL)
 	{
 		*pixel_stride = luma_stride;
+	}
+
+	return true;
+}
+/*
+ * Computes the strides and size for an 8 bit YUYV 422 buffer
+ *
+ * width                  Public known width of the buffer in pixels
+ * height                 Public known height of the buffer in pixels
+ *
+ * pixel_stride     (out) stride of the buffer in pixels
+ * byte_stride      (out) stride of the buffer in bytes
+ * size             (out) size of the buffer in bytes
+ */
+static bool get_yuv422_8bit_stride_and_size(int width, int height, int* pixel_stride, int* byte_stride, size_t* size)
+{
+	int local_byte_stride, local_pixel_stride;
+
+	/* 4:2:2 formats must have buffers with even width as the clump size is 2x1 pixels.
+	 * This is taken care of by the even stride alignment. */
+
+	local_pixel_stride = GRALLOC_ALIGN(width, YUV_MALI_PLANE_ALIGN);
+	local_byte_stride  = GRALLOC_ALIGN(width * 2, YUV_MALI_PLANE_ALIGN); /* 4 bytes per 2 pixels */
+
+	if (size != NULL)
+	{
+		*size = local_byte_stride * height;
+	}
+
+	if (byte_stride != NULL)
+	{
+		*byte_stride = local_byte_stride;
+	}
+
+	if (pixel_stride != NULL)
+	{
+		*pixel_stride = local_pixel_stride;
 	}
 
 	return true;
@@ -430,7 +466,7 @@ static bool get_afbc_yuv422_8bit_stride_and_size(int width, int height, int* pix
 
 	if (type == UNCOMPRESSED)
 	{
-		AERR(" Buffer must be allocated with AFBC mode for internal pixel format YUV420_10BIT_AFBC!");
+		AERR(" Buffer must be allocated with AFBC mode for internal pixel format YUV422_8BIT_AFBC!");
 		return false;
 	}
 
@@ -500,10 +536,12 @@ static bool get_yuv_pX10_stride_and_size(int width, int height, int vss, int* pi
 		return false;
 	}
 
-	/* odd height is allowed for P210 (2x1 sub-sampling) */
-	if ((width & 1) || (vss == 2 && (height & 1)))
+	/* 4:2:2 must have even width as the clump size is 2x1 pixels. This will be taken care of by the
+	 * even stride alignment */
+	if (vss == 2)
 	{
-		return false;
+		/* 4:2:0 must also have even height as the clump size is 2x2 */
+		height = GRALLOC_ALIGN(height, 2);
 	}
 
 	luma_pixel_stride = GRALLOC_ALIGN(width, YUV_MALI_PLANE_ALIGN);
@@ -529,7 +567,7 @@ static bool get_yuv_pX10_stride_and_size(int width, int height, int vss, int* pi
 }
 
 /*
- *  Calculate strides and strides for Y210 (YUYV packed, 4:2:2) format buffer.
+ *  Calculate strides and strides for Y210 (10 bit YUYV packed, 4:2:2) format buffer.
  *
  * @param width         [in]    Buffer width.
  * @param height        [in]    Buffer height.
@@ -547,17 +585,15 @@ static bool get_yuv_y210_stride_and_size(int width, int height, int* pixel_strid
 {
 	int y210_byte_stride, y210_pixel_stride;
 
-	if (width & 1)
-	{
-		return false;
-	}
+	/* 4:2:2 formats must have buffers with even width as the clump size is 2x1 pixels.
+	 * This is taken care of by the even stride alignment */
 
 	y210_pixel_stride = GRALLOC_ALIGN(width, YUV_MALI_PLANE_ALIGN);
+	/* 4x16 bits per 2 pixels */
 	y210_byte_stride  = GRALLOC_ALIGN(width * 4, YUV_MALI_PLANE_ALIGN);
 
 	if (size != NULL)
 	{
-		/* 4x16bits per pixel */
 		*size = y210_byte_stride * height;
 	}
 
@@ -588,23 +624,24 @@ static bool get_yuv_y210_stride_and_size(int width, int height, int* pixel_strid
  *
  * @return true if the calculation was successful; false otherwise (invalid
  * parameter)
+ *
+ * @note Each YUYAAYVYAA clump encodes a 2x2 area of pixels. YU&V are 10 bits. A is 1 bit. total 8 bytes
+ *
  */
 static bool get_yuv_y0l2_stride_and_size(int width, int height, int* pixel_stride, int* byte_stride, size_t* size)
 {
 	int y0l2_byte_stride, y0l2_pixel_stride;
 
-	if (width & 3)
-	{
-		return false;
-	}
+	/* 4:2:0 formats must have buffers with even height and width as the clump size is 2x2 pixels.
+	 * Width is take care of by the even stride alignment so just adjust height here for size calculation. */
+	height = GRALLOC_ALIGN(height, 2);
 
-	y0l2_pixel_stride = GRALLOC_ALIGN(width * 4, YUV_MALI_PLANE_ALIGN); /* 4 pixels packed per line */
-	y0l2_byte_stride  = GRALLOC_ALIGN(width * 4, YUV_MALI_PLANE_ALIGN); /* Packed in 64-bit chunks, 2 x downsampled horizontally */
+	y0l2_pixel_stride = GRALLOC_ALIGN(width, YUV_MALI_PLANE_ALIGN);
+	y0l2_byte_stride  = GRALLOC_ALIGN(width * 4, YUV_MALI_PLANE_ALIGN); /* 2 horiz pixels per 8 byte clump */
 
 	if (size != NULL)
 	{
-		/* 2 x downsampled vertically */
-		*size = y0l2_byte_stride * (height/2);
+		*size = y0l2_byte_stride * height / 2; /* byte stride covers 2 vert pixels */
 	}
 
 	if (byte_stride != NULL)
@@ -755,7 +792,7 @@ static bool get_yuv422_10bit_afbc_stride_and_size(int width, int height, int* pi
 
 	if (type == UNCOMPRESSED)
 	{
-		AERR(" Buffer must be allocated with AFBC mode for internal pixel format YUV420_10BIT_AFBC!");
+		AERR(" Buffer must be allocated with AFBC mode for internal pixel format YUV422_10BIT_AFBC!");
 		return false;
 	}
 
@@ -798,6 +835,84 @@ static bool get_yuv422_10bit_afbc_stride_and_size(int width, int height, int* pi
 
 	return true;
 }
+
+#if PLATFORM_SDK_VERSION >= 23
+/*
+ *  Calculate strides and strides for Camera RAW and Blob formats
+ *
+ * @param w             [in]    Buffer width.
+ * @param h             [in]    Buffer height.
+ * @param format        [in]    Requested HAL format
+ * @param out_stride    [out]   Pixel stride; number of pixels/bytes between
+ *                              consecutive rows. Format description calls for
+ *                              either bytes or pixels.
+ * @param size          [out]   Size of the buffer in bytes. Cumulative sum of
+ *                              sizes of all planes.
+ *
+ * @return true if the calculation was successful; false otherwise (invalid
+ * parameter)
+ */
+static bool get_camera_formats_stride_and_size(int w, int h, uint64_t format, int *out_stride, size_t *out_size)
+{
+	int stride, size;
+
+	switch (format)
+	{
+		case HAL_PIXEL_FORMAT_RAW16:
+			stride = w; /* Format assumes stride in pixels */
+			stride = GRALLOC_ALIGN(stride, 16); /* Alignment mandated by Android */
+			size = stride * h * 2; /* 2 bytes per pixel */
+			break;
+
+		case HAL_PIXEL_FORMAT_RAW12:
+			if (w % 4 != 0)
+			{
+				ALOGE("ERROR: Width for HAL_PIXEL_FORMAT_RAW12 buffers has to be multiple of 4.");
+				return false;
+			}
+			stride = (w / 2) * 3; /* Stride in bytes; 2 pixels in 3 bytes */
+			size = stride * h;
+			break;
+
+		case HAL_PIXEL_FORMAT_RAW10:
+			if (w % 4 != 0)
+			{
+				ALOGE("ERROR: Width for HAL_PIXEL_FORMAT_RAW10 buffers has to be multiple of 4.");
+				return false;
+			}
+			stride = (w / 4) * 5; /* Stride in bytes; 4 pixels in 5 bytes */
+			size = stride * h;
+			break;
+
+		case HAL_PIXEL_FORMAT_BLOB:
+			if (h != 1)
+			{
+				ALOGE("ERROR: Height for HAL_PIXEL_FORMAT_BLOB must be 1.");
+				return false;
+			}
+			stride = 0; /* No 'rows', it's effectively a long one dimensional array */
+			size = w;
+			break;
+
+		default:
+			return false;
+
+	}
+
+	if (out_size != NULL)
+	{
+		*out_size = size;
+	}
+
+	if (out_stride != NULL)
+	{
+		*out_stride = stride;
+	}
+
+	return true;
+}
+
+#endif /* PLATFORM_SDK_VERSION >= 23 */
 
 static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int usage, buffer_handle_t* pHandle, int* pStride)
 {
@@ -893,8 +1008,8 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 		}
 	}
 
-	/* map format if necessary */
-	uint64_t mapped_format = map_format(internal_format & GRALLOC_ARM_INTFMT_FMT_MASK);
+	/* Map format if necessary (also removes internal format extension bits) */
+	uint64_t mapped_format = map_format(internal_format);
 
     /* 若 internal_format "不是" extended_yuv_fmt 且 "不是" arm_afbc_yuv. 则... */
 	if (!alloc_for_extended_yuv && !alloc_for_arm_afbc_yuv)
@@ -926,21 +1041,41 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 			case GRALLOC_ARM_HAL_FORMAT_INDEXED_NV12:
 			case GRALLOC_ARM_HAL_FORMAT_INDEXED_NV21:
 			{
-				// Mali subsystem prefers higher stride alignment values (128b) for YUV, but software components assume default of 16.
-				// We only need to care about YV12 as it's the only, implicit, HAL YUV format in Android.
+				/* Mali subsystem prefers higher stride alignment values (128 bytes) for YUV, but software components assume
+				 * default of 16. We only need to care about YV12 as it's the only, implicit, HAL YUV format in Android. 
+				 */
 				int yv12_align = YUV_MALI_PLANE_ALIGN;
 				if(usage & (GRALLOC_USAGE_SW_READ_MASK | GRALLOC_USAGE_SW_WRITE_MASK))
 				{
 					yv12_align = YUV_ANDROID_PLANE_ALIGN;
 				}
 
-				if (!get_yv12_stride_and_size(w, h, &pixel_stride, &byte_stride, &size, type, &internalHeight, yv12_align))
+				if (!get_yv12_stride_and_size(w, h, &pixel_stride, &byte_stride, &size, type,
+				                              &internalHeight, yv12_align))
 				{
                     E("fail to get stride and size.");
 					return -EINVAL;
 				}
 				break;
 			}
+			case HAL_PIXEL_FORMAT_YCbCr_422_I:
+			{
+				/* YUYV 4:2:2 */
+				if (!get_yuv422_8bit_stride_and_size(w, h, &pixel_stride, &byte_stride, &size))
+				{
+					return -EINVAL;
+				}
+				break;
+			}
+#if PLATFORM_SDK_VERSION >= 23
+			case HAL_PIXEL_FORMAT_RAW16:
+			case HAL_PIXEL_FORMAT_RAW12:
+			case HAL_PIXEL_FORMAT_RAW10:
+			case HAL_PIXEL_FORMAT_BLOB:
+				get_camera_formats_stride_and_size(w, h, mapped_format, &pixel_stride, &size);
+				byte_stride = pixel_stride; /* For Raw/Blob formats stride is defined to be either in bytes or pixels per format */
+				break;
+#endif /*  PLATFORM_SDK_VERSION >= 23 */
 
             /*-------------------------------------------------------*/
 				/*
@@ -989,7 +1124,7 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 		{
 			case GRALLOC_ARM_HAL_FORMAT_INDEXED_Y0L2:
 				/* YUYAAYUVAA 4:2:0 */
-				if (false == get_yuv_y0l2_stride_and_size(w, h, &pixel_stride, &byte_stride, &size))
+				if (!get_yuv_y0l2_stride_and_size(w, h, &pixel_stride, &byte_stride, &size))
 				{
                     E("err.");
 					return -EINVAL;
@@ -998,7 +1133,7 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 
 			case GRALLOC_ARM_HAL_FORMAT_INDEXED_P010:
 				/* Y-UV 4:2:0 */
-				if (false == get_yuv_pX10_stride_and_size(w, h, 2, &pixel_stride, &byte_stride, &size))
+				if (!get_yuv_pX10_stride_and_size(w, h, 2, &pixel_stride, &byte_stride, &size))
 				{
                     E("err.");
 					return -EINVAL;
@@ -1007,7 +1142,7 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 
 			case GRALLOC_ARM_HAL_FORMAT_INDEXED_P210:
 				/* Y-UV 4:2:2 */
-				if (false == get_yuv_pX10_stride_and_size(w, h, 1, &pixel_stride, &byte_stride, &size))
+				if (!get_yuv_pX10_stride_and_size(w, h, 1, &pixel_stride, &byte_stride, &size))
 				{
                     E("err.");
 					return -EINVAL;
@@ -1015,8 +1150,8 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 				break;
 
 			case GRALLOC_ARM_HAL_FORMAT_INDEXED_Y210:
-				/* YUYV 4:2:0 */
-				if (false == get_yuv_y210_stride_and_size(w, h, &pixel_stride, &byte_stride, &size))
+				/* YUYV 4:2:2 */
+				if (!get_yuv_y210_stride_and_size(w, h, &pixel_stride, &byte_stride, &size))
 				{
                     E("err.");
 					return -EINVAL;
@@ -1025,7 +1160,7 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 
 			case GRALLOC_ARM_HAL_FORMAT_INDEXED_Y410:
 				/* AVYU 2-10-10-10 */
-				if (false == get_yuv_y410_stride_and_size(w, h, &pixel_stride, &byte_stride, &size))
+				if (!get_yuv_y410_stride_and_size(w, h, &pixel_stride, &byte_stride, &size))
 				{
                     E("err.");
 					return -EINVAL;
@@ -1049,14 +1184,14 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 
 			case GRALLOC_ARM_HAL_FORMAT_INDEXED_YUV420_10BIT_AFBC:
 				/* YUV 4:2:0 compressed */
-				if (false == get_yuv420_10bit_afbc_stride_and_size(w, h, &pixel_stride, &byte_stride, &size, type))
+				if (!get_yuv420_10bit_afbc_stride_and_size(w, h, &pixel_stride, &byte_stride, &size, type))
 				{
 					return -EINVAL;
 				}
 				break;
 			case GRALLOC_ARM_HAL_FORMAT_INDEXED_YUV422_10BIT_AFBC:
 				/* YUV 4:2:2 compressed */
-				if (false == get_yuv422_10bit_afbc_stride_and_size(w, h, &pixel_stride, &byte_stride, &size, type))
+				if (!get_yuv422_10bit_afbc_stride_and_size(w, h, &pixel_stride, &byte_stride, &size, type))
 				{
                     E("err.");
 					return -EINVAL;
