@@ -22,6 +22,7 @@
 #include <string.h>
 #include <errno.h>
 #include <pthread.h>
+#include <inttypes.h>
 
 #include <cutils/log.h>
 #include <cutils/atomic.h>
@@ -59,6 +60,51 @@
 
 // Default YUV stride aligment in Android
 #define YUV_ANDROID_PLANE_ALIGN 16
+
+#ifdef USE_AFBC_LAYER
+uint64_t select_internal_format_for_layer_preferring_afbc(int format, int usage)
+{
+    uint64_t internal_format = format;
+
+    if ( 0 == format )
+    {
+        E("unexpected format : 0x%x.", format);
+        return 0;
+    }
+
+    if( (usage & (GRALLOC_USAGE_SW_READ_MASK | GRALLOC_USAGE_SW_WRITE_MASK)) != 0
+        || usage == 0 )
+	{
+        E("unexpected usage : 0x%x.", usage);
+		return internal_format;
+	}
+
+    switch ( format )
+    {
+        case HAL_PIXEL_FORMAT_RGBA_8888:
+            internal_format = GRALLOC_ARM_INTFMT_AFBC | GRALLOC_ARM_HAL_FORMAT_INDEXED_RGBA_8888;
+            break;
+
+        case HAL_PIXEL_FORMAT_RGBX_8888:
+            // internal_format = GRALLOC_ARM_INTFMT_AFBC |  GRALLOC_ARM_HAL_FORMAT_INDEXED_RGBX_8888;
+            // .trick : rk_fb_dev 为 afbc_rgbx_8888 提供的接口未不明确, 先使用 afbc_rgba_8888.
+            internal_format = GRALLOC_ARM_INTFMT_AFBC | GRALLOC_ARM_HAL_FORMAT_INDEXED_RGBA_8888;
+            break;
+
+        /*
+        case HAL_PIXEL_FORMAT_RGB_565:
+            internal_format = GRALLOC_ARM_INTFMT_AFBC | GRALLOC_ARM_HAL_FORMAT_INDEXED_RGB_565;
+            break;
+        */
+
+        default:
+            E("unexpected format : 0x%x.", format);
+            break;
+    }
+
+    return internal_format;
+}
+#endif
 
 static int gralloc_alloc_framebuffer_locked(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle, int* stride, int* byte_stride)
 {
@@ -969,21 +1015,25 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 
 	internal_format = gralloc_select_format(format, usage, w*h);
 
-	alloc_for_extended_yuv = (internal_format & GRALLOC_ARM_INTFMT_EXTENDED_YUV) == GRALLOC_ARM_INTFMT_EXTENDED_YUV;
-	alloc_for_arm_afbc_yuv = (internal_format & GRALLOC_ARM_INTFMT_ARM_AFBC_YUV) == GRALLOC_ARM_INTFMT_ARM_AFBC_YUV;
-
 #ifdef USE_AFBC_LAYER
-#define MAGIC_USAGE_TO_USE_AFBC_LAYER     (0x88)
-    if ( MAGIC_USAGE_TO_USE_AFBC_LAYER == (usage & MAGIC_USAGE_TO_USE_AFBC_LAYER) ) {
-        internal_format = GRALLOC_ARM_INTFMT_AFBC | GRALLOC_ARM_HAL_FORMAT_INDEXED_RGBA_8888;
-        W("use_afbc_layer: force to set 'internal_format' to 0x%llx for usage '0x%x'.", internal_format, usage);
+// #define MAGIC_USAGE_TO_USE_AFBC_LAYER     (0x88)
+#define MAGIC_USAGE_TO_USE_AFBC_LAYER       (0x04000000)
+    /* 若当前 buffer 是用于 app_layer_preferring_afbc 或者 fb_target_layer, 则... */
+    if ( MAGIC_USAGE_TO_USE_AFBC_LAYER == (usage & MAGIC_USAGE_TO_USE_AFBC_LAYER)
+        || usage & GRALLOC_USAGE_HW_FB )
+    {
+        internal_format = select_internal_format_for_layer_preferring_afbc(format, usage);
+        I("use_afbc_layer: 'internal_format' for (usage: 0x%x, format: 0x%x) : 0x%" PRIx64, usage, format, internal_format);
     }
 
     if (usage & GRALLOC_USAGE_HW_FB) {
-        internal_format = GRALLOC_ARM_INTFMT_AFBC | GRALLOC_ARM_HAL_FORMAT_INDEXED_RGBA_8888;
-        W("use_afbc_layer: force to set 'internal_format' to 0x%llx for buffer_for_fb_target_layer.");
+        D("fb_target_layer, format : 0x%x, usage : 0x5x", format, usage);
     }
 #endif
+
+
+	alloc_for_extended_yuv = (internal_format & GRALLOC_ARM_INTFMT_EXTENDED_YUV) == GRALLOC_ARM_INTFMT_EXTENDED_YUV;
+	alloc_for_arm_afbc_yuv = (internal_format & GRALLOC_ARM_INTFMT_ARM_AFBC_YUV) == GRALLOC_ARM_INTFMT_ARM_AFBC_YUV;
 
 	if (internal_format & (GRALLOC_ARM_INTFMT_AFBC | GRALLOC_ARM_INTFMT_AFBC_SPLITBLK | GRALLOC_ARM_INTFMT_AFBC_WIDEBLK))
 	{
