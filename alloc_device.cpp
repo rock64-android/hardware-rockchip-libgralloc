@@ -1016,10 +1016,8 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 	internal_format = gralloc_select_format(format, usage, w*h);
 
 #ifdef USE_AFBC_LAYER
-// #define MAGIC_USAGE_TO_USE_AFBC_LAYER     (0x88)
-#define MAGIC_USAGE_TO_USE_AFBC_LAYER       (0x04000000)
     /* 若当前 buffer 是用于 app_layer_preferring_afbc 或者 fb_target_layer, 则... */
-    if ( MAGIC_USAGE_TO_USE_AFBC_LAYER == (usage & MAGIC_USAGE_TO_USE_AFBC_LAYER)
+    if ( GRALLOC_USAGE_TO_USE_FBDC_FMT == (usage & GRALLOC_USAGE_TO_USE_FBDC_FMT)
         || usage & GRALLOC_USAGE_HW_FB )
     {
         internal_format = select_internal_format_for_layer_preferring_afbc(format, usage);
@@ -1271,7 +1269,7 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 #endif
 	}
 	/*
-	else if(usage & 0x08000000)
+	else if(usage & 0GRALLOC_USAGE_TO_USE_SINGLE_BUFFER)
 	{
 		 ALOGD("---------------------%x",usage);
 		 err = alloc_from_backbuffer(dev, size, usage, pHandle, internal_format, w, h);

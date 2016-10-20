@@ -422,7 +422,7 @@ void alloc_backend_alloc_free(private_handle_t const* hnd, private_module_t* m)
 	}
 	else if ( hnd->flags & private_handle_t::PRIV_FLAGS_USES_ION )
 	{
-        if(hnd->flags & 0x08000000) {
+        if(hnd->flags & GRALLOC_USAGE_TO_USE_SINGLE_BUFFER) {
             ALOGD("Try to free ion_hnd=0x%x",hnd->ion_hnd);
             /* Buffer might be unregistered already so we need to assure we have a valid handle*/
             if ( 0 != hnd->base )
@@ -549,7 +549,7 @@ int alloc_from_backbuffer(alloc_device_t* dev, size_t size, int usage, buffer_ha
 		return -1;
 	}
     ALOGD("--------------------------------------%s,%d",__FUNCTION__,__LINE__);
-	private_handle_t *hnd = new private_handle_t( private_handle_t::PRIV_FLAGS_USES_ION | 0x08000000, usage, size, cpu_ptr, private_handle_t::LOCK_STATE_MAPPED );
+	private_handle_t *hnd = new private_handle_t( private_handle_t::PRIV_FLAGS_USES_ION | GRALLOC_USAGE_TO_USE_SINGLE_BUFFER, usage, size, cpu_ptr, private_handle_t::LOCK_STATE_MAPPED );
 
 	if ( NULL != hnd )
 	{
