@@ -31,11 +31,12 @@ endif
 
 MALI_DDK_TEST_PATH := hardware/arm/
 
-LOCAL_MODULE := gralloc.default
+#LOCAL_MODULE := gralloc.default
+LOCAL_MODULE := gralloc.$(TARGET_BOARD_HARDWARE)
 #LOCAL_MODULE_TAGS := optional
 
 # Which DDK are we building for?
-ifeq (,$(wildcard $(MALI_DDK_TEST_PATH)))
+ifneq (,$(wildcard $(MALI_DDK_TEST_PATH)))
 # Mali-T6xx DDK
 MALI_DDK_PATH := vendor/arm/mali6xx
 LOCAL_SHARED_LIBRARIES := liblog libcutils libGLESv1_CM libGLES_mali libion
@@ -57,7 +58,7 @@ LOCAL_C_INCLUDES := system/core/include/ $(MALI_DDK_PATH)/include
 # Include the UMP header files
 LOCAL_C_INCLUDES += $(MALI_DDK_PATH)/src/ump/include
 
-LOCAL_CFLAGS := -DLOG_TAG=\"gralloc\" -DGRALLOC_32_BITS -DSTANDARD_LINUX_SCREEN -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
+LOCAL_CFLAGS := -DLOG_TAG=\"gralloc\" -DGRALLOC_16_BITS=1 -DGRALLOC_32_BITS -DSTANDARD_LINUX_SCREEN -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
 endif
 
 LOCAL_SRC_FILES := \

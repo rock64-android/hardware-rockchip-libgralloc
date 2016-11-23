@@ -363,7 +363,7 @@ static int gralloc_alloc_framebuffer_locked(alloc_device_t *dev, size_t size, in
 
 #if GRALLOC_ARM_DMA_BUF_MODULE
 	{
-#ifdef FBIOGET_DMABUF
+#ifdef FBIOGET_DMABUF //arm std
 		struct fb_dmabuf_export fb_dma_buf;
 
 		if (ioctl(m->framebuffer->fd, FBIOGET_DMABUF, &fb_dma_buf) == 0)
@@ -371,13 +371,19 @@ static int gralloc_alloc_framebuffer_locked(alloc_device_t *dev, size_t size, in
 			AINF("framebuffer accessed with dma buf (fd 0x%x)\n", (int)fb_dma_buf.fd);
 			hnd->share_fd = fb_dma_buf.fd;
 		}
-
+#else //rk platform
+		int share_fd = -1;
+		if (ioctl(m->framebuffer->fd, /*FBIOGET_DMABUF*/0x5003, &share_fd) == 0)
+		{
+			AINF("framebuffer accessed with dma buf (fd 0x%x)\n", (int)share_fd);
+			hnd->share_fd = share_fd;
+		}
 #endif
 	}
 #endif
 
 	*pHandle = hnd;
-
+	ALOGD("alloc_device_alloc_ok [%d,%d,%d]",hnd->width,hnd->height,hnd->format,hnd->share_fd);
 	return 0;
 }
 
@@ -535,6 +541,8 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
 	hnd->stride = stride;
 
 	*pStride = stride;
+
+	ALOGD("alloc_device_alloc_ok [%d,%d,%d,%d]",w,h,hnd->format,hnd->share_fd);
 	return 0;
 }
 

@@ -38,6 +38,8 @@
 #include "gralloc_priv.h"
 #include "gralloc_helper.h"
 
+#include <hardware/rk_fh.h>
+
 // numbers of buffers for page flipping
 #define NUM_BUFFERS NUM_FB_BUFFERS
 
@@ -94,14 +96,79 @@ static int fb_post(struct framebuffer_device_t *dev, buffer_handle_t buffer)
 #ifdef STANDARD_LINUX_SCREEN
 #define FBIO_WAITFORVSYNC       _IOW('F', 0x20, __u32)
 #define S3CFB_SET_VSYNC_INT _IOW('F', 206, unsigned int)
-
+#if 0 //arm mali gralloc
 		if (ioctl(m->framebuffer->fd, FBIOPAN_DISPLAY, &m->info) == -1)
 		{
 			AERR("FBIOPAN_DISPLAY failed for fd: %d", m->framebuffer->fd);
 			m->base.unlock(&m->base, buffer);
 			return 0;
 		}
+#else //rk fb config done mode
 
+		struct rk_fb_win_cfg_data fb_info;
+		memset(&fb_info,0,sizeof(fb_info));
+
+		unsigned int fboffset = hnd->offset;
+		fb_info.win_par[0].win_id = 0;
+		fb_info.win_par[0].z_order = 0;
+		fb_info.win_par[0].area_par[0].data_format = hnd->format;
+		fb_info.win_par[0].area_par[0].ion_fd = hnd->share_fd;
+		fb_info.win_par[0].area_par[0].acq_fence_fd = -1;
+		fb_info.win_par[0].area_par[0].x_offset = 0;
+		fb_info.win_par[0].area_par[0].y_offset = fboffset/m->finfo.line_length;
+		fb_info.win_par[0].area_par[0].xpos = 0;
+		fb_info.win_par[0].area_par[0].ypos = 0;
+		fb_info.win_par[0].area_par[0].xsize = hnd->width;
+		fb_info.win_par[0].area_par[0].ysize = hnd->height;
+		fb_info.win_par[0].area_par[0].xact = hnd->width;
+		fb_info.win_par[0].area_par[0].yact = hnd->height;
+		fb_info.win_par[0].area_par[0].xvir = hnd->stride;
+		fb_info.win_par[0].area_par[0].yvir = hnd->height;
+		if (ioctl(m->framebuffer->fd, RK_FBIOSET_CONFIG_DONE, &fb_info) == -1)
+		{
+			AERR( "FBIOPUT_VSCREENINFO failed for fd: %d", m->framebuffer->fd );
+			m->base.unlock(&m->base, buffer);
+			return -errno;
+		}
+		else
+		{
+			for(int k=0;k<RK_MAX_BUF_NUM;k++)
+			{
+				if(fb_info.rel_fence_fd[k]!= -1)
+					close(fb_info.rel_fence_fd[k]);
+			}
+			if(fb_info.ret_fence_fd != -1)
+				close(fb_info.ret_fence_fd);
+		}
+#if 1
+		for (int i = 0;i < 4;i++)
+		{
+			for (int j = 0;j < 4;j++)
+			{
+				if (fb_info.win_par[i].area_par[j].ion_fd)
+				ALOGD("@gralloc win[%d],area[%d],z_win[%d,%d], \
+				      [%d,%d,%d,%d]=>[%d,%d,%d,%d],w_h_f[%d,%d,%d], \
+				      fd=%d,addr=%x",
+				      i, j,
+				      fb_info.win_par[i].z_order,
+				      fb_info.win_par[i].win_id,
+				      fb_info.win_par[i].area_par[j].x_offset,
+				      fb_info.win_par[i].area_par[j].y_offset,
+				      fb_info.win_par[i].area_par[j].xact,
+				      fb_info.win_par[i].area_par[j].yact,
+				      fb_info.win_par[i].area_par[j].xpos,
+				      fb_info.win_par[i].area_par[j].ypos,
+				      fb_info.win_par[i].area_par[j].xsize,
+				      fb_info.win_par[i].area_par[j].ysize,
+				      fb_info.win_par[i].area_par[j].xvir,
+				      fb_info.win_par[i].area_par[j].yvir,
+				      fb_info.win_par[i].area_par[j].data_format,
+				      fb_info.win_par[i].area_par[j].ion_fd,
+				      fb_info.win_par[i].area_par[j].phy_addr);
+			}
+		}
+#endif
+#endif
 		if (swapInterval == 1)
 		{
 			// enable VSYNC
