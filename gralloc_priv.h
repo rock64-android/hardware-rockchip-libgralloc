@@ -164,10 +164,16 @@ struct private_handle_t
 	int     height;
 	int     format;
 	int     stride;
+	int     type;
 	union
 	{
 		void   *base;
 		uint64_t padding;
+	};
+	union
+	{
+		void *phy_addr;
+		uint64_t phyPadding;
 	};
 	int     lockState;
 	int     writeOwner;
@@ -212,7 +218,9 @@ struct private_handle_t
 		height(0),
 		format(0),
 		stride(0),
+		type(0),
 		base(base),
+		phy_addr(NULL),
 		lockState(lock_state),
 		writeOwner(0),
 		pid(getpid()),
@@ -244,7 +252,9 @@ struct private_handle_t
 		height(0),
 		format(0),
 		stride(0),
+		type(0),
 		base(base),
+		phy_addr(NULL),
 		lockState(lock_state),
 		writeOwner(0),
 		pid(getpid()),
@@ -277,7 +287,9 @@ struct private_handle_t
 		height(0),
 		format(0),
 		stride(0),
+		type(0),
 		base(base),
+		phy_addr(NULL),
 		lockState(lock_state),
 		writeOwner(0),
 		pid(getpid()),
@@ -312,11 +324,11 @@ struct private_handle_t
 	static int validate(const native_handle *h)
 	{
 		const private_handle_t *hnd = (const private_handle_t *)h;
-
 		if (!h || h->version != sizeof(native_handle) || h->numFds != sNumFds ||
 		        h->numInts != (sizeof(private_handle_t) - sizeof(native_handle)) / sizeof(int) - sNumFds ||
 		        hnd->magic != sMagic)
 		{
+			ALOGE("handle is invale for check");
 			return -EINVAL;
 		}
 

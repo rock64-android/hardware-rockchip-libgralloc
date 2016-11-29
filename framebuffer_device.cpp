@@ -140,7 +140,7 @@ static int fb_post(struct framebuffer_device_t *dev, buffer_handle_t buffer)
 			if(fb_info.ret_fence_fd != -1)
 				close(fb_info.ret_fence_fd);
 		}
-#if 1
+#if 0
 		for (int i = 0;i < 4;i++)
 		{
 			for (int j = 0;j < 4;j++)

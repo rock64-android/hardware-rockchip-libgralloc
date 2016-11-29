@@ -19,9 +19,11 @@
 #include <string.h>
 #include <errno.h>
 #include <pthread.h>
+#include <stdlib.h>
 
 #include <cutils/log.h>
 #include <cutils/atomic.h>
+#include <cutils/properties.h>
 #include <hardware/hardware.h>
 #include <hardware/gralloc.h>
 
@@ -95,6 +97,30 @@ static int __ump_alloc_should_fail()
 }
 #endif
 
+int gralloc_get_int_property(const char* pcProperty, const char* default_value)
+{
+	char value[PROPERTY_VALUE_MAX];
+	int new_value = 0;
+
+	if (pcProperty == NULL || default_value == NULL)
+	{
+		return -1;
+	}
+
+	property_get(pcProperty, value, default_value);
+	new_value = atoi(value);
+
+	return new_value;
+}
+
+
+static int is_out_log(int check)
+{
+	static int log = 0;
+	if (check)
+		log = gralloc_get_int_property("sys.gralloc.log","0");
+	return log;
+}
 
 static int gralloc_alloc_buffer(alloc_device_t *dev, size_t size, int usage, buffer_handle_t *pHandle)
 {
@@ -383,7 +409,8 @@ static int gralloc_alloc_framebuffer_locked(alloc_device_t *dev, size_t size, in
 #endif
 
 	*pHandle = hnd;
-	ALOGD("alloc_device_alloc_ok [%d,%d,%d]",hnd->width,hnd->height,hnd->format,hnd->share_fd);
+	if (is_out_log(0))
+		ALOGD("alloc [%d,%d,%d,%d]", hnd->width, hnd->height, hnd->format, hnd->share_fd);
 	return 0;
 }
 
@@ -405,6 +432,8 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
 
 	size_t size;
 	size_t stride;
+
+	is_out_log(1);
 
 	if (format == HAL_PIXEL_FORMAT_YCrCb_420_SP || format == HAL_PIXEL_FORMAT_YV12
 	        /* HAL_PIXEL_FORMAT_YCbCr_420_SP, HAL_PIXEL_FORMAT_YCbCr_420_P, HAL_PIXEL_FORMAT_YCbCr_422_I are not defined in Android.
@@ -542,7 +571,8 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
 
 	*pStride = stride;
 
-	ALOGD("alloc_device_alloc_ok [%d,%d,%d,%d]",w,h,hnd->format,hnd->share_fd);
+	if (is_out_log(0))
+		ALOGD("framebuffer [%d,%d,%d,%d]",w,h,hnd->format,hnd->share_fd);
 	return 0;
 }
 
