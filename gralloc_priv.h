@@ -62,7 +62,8 @@ struct fb_dmabuf_export
 };
 /*#define FBIOGET_DMABUF    _IOR('F', 0x21, struct fb_dmabuf_export)*/
 
-#if PLATFORM_SDK_VERSION >= 21
+//#if PLATFORM_SDK_VERSION >= 21
+#if 1 //gralloc r7 is only used SDK VERSION bigger than 21
 typedef int ion_user_handle_t;
 #define ION_INVALID_HANDLE 0
 #else
