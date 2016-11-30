@@ -64,7 +64,8 @@ endif
 LOCAL_SRC_FILES := \
 	gralloc_module.cpp \
 	alloc_device.cpp \
-	framebuffer_device.cpp
+	framebuffer_device.cpp \
+	rockchip_alloc_device.cpp
 
 #LOCAL_CFLAGS+= -DMALI_VSYNC_EVENT_REPORT_ENABLE
 include $(BUILD_SHARED_LIBRARY)

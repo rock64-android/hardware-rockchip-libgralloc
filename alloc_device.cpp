@@ -44,6 +44,8 @@
 #include <ion/ion.h>
 #endif
 
+#include "rockchip_alloc_device.h"
+
 #define GRALLOC_ALIGN( value, base ) (((value) + ((base) - 1)) & ~((base) - 1))
 
 
@@ -96,31 +98,6 @@ static int __ump_alloc_should_fail()
 	return fail;
 }
 #endif
-
-int gralloc_get_int_property(const char* pcProperty, const char* default_value)
-{
-	char value[PROPERTY_VALUE_MAX];
-	int new_value = 0;
-
-	if (pcProperty == NULL || default_value == NULL)
-	{
-		return -1;
-	}
-
-	property_get(pcProperty, value, default_value);
-	new_value = atoi(value);
-
-	return new_value;
-}
-
-
-static int is_out_log(int check)
-{
-	static int log = 0;
-	if (check)
-		log = gralloc_get_int_property("sys.gralloc.log","0");
-	return log;
-}
 
 static int gralloc_alloc_buffer(alloc_device_t *dev, size_t size, int usage, buffer_handle_t *pHandle)
 {
@@ -203,6 +180,7 @@ static int gralloc_alloc_buffer(alloc_device_t *dev, size_t size, int usage, buf
 		{
 			hnd->share_fd = shared_fd;
 			hnd->ion_hnd = ion_hnd;
+			hnd->type = rockchip_get_handle_type_by_heap_mask(heap_mask);
 			*pHandle = hnd;
 			return 0;
 		}
@@ -409,7 +387,7 @@ static int gralloc_alloc_framebuffer_locked(alloc_device_t *dev, size_t size, in
 #endif
 
 	*pHandle = hnd;
-	if (is_out_log(0))
+	if (rockchip_log(0))
 		ALOGD("alloc [%d,%d,%d,%d]", hnd->width, hnd->height, hnd->format, hnd->share_fd);
 	return 0;
 }
@@ -433,7 +411,7 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
 	size_t size;
 	size_t stride;
 
-	is_out_log(1);
+	rockchip_log(1);
 
 	if (format == HAL_PIXEL_FORMAT_YCrCb_420_SP || format == HAL_PIXEL_FORMAT_YV12
 	        /* HAL_PIXEL_FORMAT_YCbCr_420_SP, HAL_PIXEL_FORMAT_YCbCr_420_P, HAL_PIXEL_FORMAT_YCbCr_422_I are not defined in Android.
@@ -571,7 +549,7 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
 
 	*pStride = stride;
 
-	if (is_out_log(0))
+	if (rockchip_log(0))
 		ALOGD("framebuffer [%d,%d,%d,%d]",w,h,hnd->format,hnd->share_fd);
 	return 0;
 }
