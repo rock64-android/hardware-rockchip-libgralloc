@@ -111,6 +111,7 @@ struct private_module_t
 	pthread_mutex_t lock;
 	buffer_handle_t currentBuffer;
 	int ion_client;
+	volatile int32_t refCount;
 
 	struct fb_var_screeninfo info;
 	struct fb_fix_screeninfo finfo;

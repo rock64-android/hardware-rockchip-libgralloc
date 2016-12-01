@@ -39,6 +39,8 @@ static int s_ump_is_open = 0;
 #include <sys/mman.h>
 #endif
 
+#include "rockchip_alloc_device.h"
+
 static pthread_mutex_t s_map_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static int gralloc_device_open(const hw_module_t *module, const char *name, hw_device_t **device)
@@ -157,6 +159,7 @@ static int gralloc_register_buffer(gralloc_module_t const *module, buffer_handle
 		 */
 		if (m->ion_client <= 0)
 		{
+#if 0 //arm std
 			/* a second user process must obtain a client handle first via ion_open before it can obtain the shared ion buffer*/
 			m->ion_client = ion_open();
 
@@ -166,6 +169,13 @@ static int gralloc_register_buffer(gralloc_module_t const *module, buffer_handle
 				retval = -errno;
 				goto cleanup;
 			}
+#else //rk platform
+			pthread_mutex_lock(&m->lock);
+			ret = rockchip_alloc_ion_open(m);
+			pthread_mutex_unlock(&m->lock);
+			if (ret)
+				goto cleanup;
+#endif
 		}
 
 		mappedAddress = (unsigned char *)mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, hnd->share_fd, 0);
@@ -322,6 +332,7 @@ static int gralloc_lock(gralloc_module_t const *module, buffer_handle_t handle, 
 static int gralloc_unlock(gralloc_module_t const *module, buffer_handle_t handle)
 {
 	MALI_IGNORE(module);
+	int ret = 0;
 
 	if (private_handle_t::validate(handle) < 0)
 	{
@@ -348,7 +359,14 @@ static int gralloc_unlock(gralloc_module_t const *module, buffer_handle_t handle
 		if (hw_get_module(GRALLOC_HARDWARE_MODULE_ID, (const hw_module_t **)&pmodule) == 0)
 		{
 			m = reinterpret_cast<private_module_t *>(pmodule);
-			//ion_sync_fd(m->ion_client, hnd->share_fd);
+			if (m->ion_client <= 0)
+			{
+				pthread_mutex_lock(&m->lock);
+				ret = rockchip_alloc_ion_open(m);
+				pthread_mutex_unlock(&m->lock);
+			}
+			if (!ret)
+				ion_sync_fd(m->ion_client, hnd->share_fd);
 		}
 		else
 		{
@@ -407,6 +425,8 @@ private_module_t::private_module_t()
 	bufferMask = 0;
 	pthread_mutex_init(&(lock), NULL);
 	currentBuffer = NULL;
+	ion_client = -1;
+	refCount = 0;
 	INIT_ZERO(info);
 	INIT_ZERO(finfo);
 	xdpi = 0.0f;

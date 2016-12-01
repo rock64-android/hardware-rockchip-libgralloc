@@ -53,42 +53,37 @@
 */
 int rockchip_get_handle_type_by_heap_mask(unsigned int heap_mask)
 {
-    int ret = 0;
-    switch (heap_mask) {
+	int ret = 0;
+	switch (heap_mask) {
 #if defined(ION_HEAP_SECURE_MASK)
 		case ION_HEAP_SECURE_MASK:
-		    ret = 0;
-            break;
+			ret = 0;
+			break;
 #endif
-        case ION_HEAP_SYSTEM_MASK:
-            ret = 1;
-            break;
-
-        case ION_HEAP_SYSTEM_CONTIG_MASK:
-            ret = 1;
-            break;
-
-        case ION_HEAP_CARVEOUT_MASK:
-            ret = 0;
-            break;
-
-        case ION_HEAP_TYPE_DMA_MASK:
-            ret = 0;
-            break;
-
+		case ION_HEAP_SYSTEM_MASK:
+			ret = 1;
+			break;
+		case ION_HEAP_SYSTEM_CONTIG_MASK:
+			ret = 1;
+			break;
+		case ION_HEAP_CARVEOUT_MASK:
+			ret = 0;
+			break;
+		case ION_HEAP_TYPE_DMA_MASK:
+			ret = 0;
+			break;
 #ifdef ION_HEAP_TYPE_SECURE_MASK
-        case ION_HEAP_TYPE_SECURE_MASK:
-            ret = 0;
-            break;
+		case ION_HEAP_TYPE_SECURE_MASK:
+			ret = 0;
+			break;
 #endif
+		default:
+			ALOGE("%s,%d err heap mask:%d", __func__, __LINE__, heap_mask);
+			ret = 0;
+			break;
+	}
 
-        default:
-            ALOGE("%s,%d err heap mask:%d", __func__, __LINE__, heap_mask);
-            ret = 0;
-            break;
-    }
-
-    return ret;
+	return ret;
 }
 
 int rockchip_gralloc_get_int_property(const char* pcProperty,
@@ -116,4 +111,62 @@ int rockchip_log(int check)
 	return log;
 }
 
+int rockchip_alloc_ion_open(private_module_t *m)
+{
+	int ret = 0;
+	if (!m) {
+		AERR("private_module_t in is null m = %p", m);
+		return -EINVAL;
+	}
 
+	if (m->ion_client <= 0) {
+		m->ion_client = ion_open();
+
+		if (m->ion_client < 0) {
+			AERR("ion_open failed with %s", strerror(errno));
+			ret = m->ion_client;
+		} else {
+			android_atomic_inc(&m->refCount);
+			AINF(" ion device open success! fd = %d", m->ion_client);
+		}
+	} else {
+		ret = 0;
+		//AINF(" ion device already opened! fd = %d", m->ion_client);
+		android_atomic_inc(&m->refCount);
+	}
+
+	return ret;
+}
+
+int rockchip_alloc_ion_close(private_module_t *m)
+{
+	int ret = 0;
+	if (!m) {
+		ret = -EINVAL;
+		AERR("private_module_t in is null m = %p", m);
+		return ret;
+	}
+
+	if (m->refCount > 0 && android_atomic_dec(&m->refCount) == 1) {
+		if (m->ion_client > 0 && 0 != ion_close(m->ion_client)) {
+			ret = -1;
+			AERR("Failed to close ion_client: %d", m->ion_client);
+		} else {
+			ret = 0;
+			//AINF(" ion de refCount = %d", m->refCount);
+		}
+
+		AINF(" ion device closed! fd = %d", m->ion_client);
+		m->ion_client = -1;
+	} else if (m->refCount < 0) {
+		// Never expect this happen
+		AERR("ion client ref count : %d", m->refCount);
+		m->refCount = 0;
+		ret = -1;
+	} else {
+		ret = 0;
+		//AINF(" ion de refCount = %d", m->refCount);
+	}
+
+	return ret;
+}
