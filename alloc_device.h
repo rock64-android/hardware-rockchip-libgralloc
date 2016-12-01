@@ -17,6 +17,8 @@
  */
 
 #include <hardware/hardware.h>
+#include "gralloc_priv.h"
+#include <vector>
 
 #ifndef AWAR
 #define AWAR(fmt, args...) __android_log_print(ANDROID_LOG_WARN, "[Gralloc-Warning]", "%s:%d " fmt,__func__,__LINE__,##args)
@@ -33,3 +35,5 @@
 
 // Create an alloc device
 int alloc_device_open(hw_module_t const *module, const char *name, hw_device_t **device);
+int gralloc_backend_get_fd(struct private_handle_t* hnd, int *fd);
+int gralloc_backend_get_attrs(struct private_handle_t* hnd, void *attrs);

@@ -24,5 +24,4 @@ int rockchip_get_int_property(const char* pcProperty, const char* default_value)
 int rockchip_log(int check);
 int rockchip_alloc_ion_open(private_module_t *m);
 int rockchip_alloc_ion_close(private_module_t *m);
-
 #endif

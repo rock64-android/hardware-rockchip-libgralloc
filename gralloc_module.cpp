@@ -59,6 +59,60 @@ static int gralloc_device_open(const hw_module_t *module, const char *name, hw_d
 	return status;
 }
 
+static int gralloc_perform(gralloc_module_t const* module, int op, ...)
+{
+	MALI_IGNORE(module);
+	va_list args;
+	int err ;
+
+	va_start(args, op);
+	switch (op) {
+		case GRALLOC_MODULE_PERFORM_GET_HADNLE_PRIME_FD:
+		{
+			buffer_handle_t handle = va_arg(args, buffer_handle_t);
+			int *fd = va_arg(args, int *);
+
+			err = private_handle_t::validate(handle);
+
+			if (fd == NULL)
+				err = -EINVAL;
+
+			if (err != 0)
+				break;
+
+			private_handle_t* hnd = (private_handle_t*)handle;
+			err = gralloc_backend_get_fd(hnd,fd);
+		}
+		break;
+
+		case GRALLOC_MODULE_PERFORM_GET_HADNLE_ATTRIBUTES:
+		{
+			buffer_handle_t handle = va_arg(args, buffer_handle_t);
+			std::vector<int> *attrs = va_arg(args, std::vector<int> *);
+
+			err = private_handle_t::validate(handle);
+
+			if (attrs == NULL)
+				err = -EINVAL;
+
+			if (err != 0)
+				break;
+
+			private_handle_t* hnd = (private_handle_t*)handle;
+			err = gralloc_backend_get_attrs(hnd, (void*)attrs);
+		}
+		break;
+
+		default:
+		    ALOGE("Unknow opreation [%d]", op);
+			err = -EINVAL;
+		break;
+	}
+	va_end(args);
+
+	return err;
+}
+
 static int gralloc_register_buffer(gralloc_module_t const *module, buffer_handle_t handle)
 {
 	MALI_IGNORE(module);
@@ -416,7 +470,7 @@ private_module_t::private_module_t()
 	base.unregisterBuffer = gralloc_unregister_buffer;
 	base.lock = gralloc_lock;
 	base.unlock = gralloc_unlock;
-	base.perform = NULL;
+	base.perform = gralloc_perform;
 	INIT_ZERO(base.reserved_proc);
 
 	framebuffer = NULL;

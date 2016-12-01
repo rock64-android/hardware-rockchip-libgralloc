@@ -629,6 +629,25 @@ static int alloc_device_free(alloc_device_t *dev, buffer_handle_t handle)
 	return 0;
 }
 
+int gralloc_backend_get_fd(struct private_handle_t* hnd, int *fd)
+{
+	*fd = hnd->share_fd;
+	return 0;
+}
+
+int gralloc_backend_get_attrs(struct private_handle_t* hnd, void *attrs)
+{
+	std::vector<int> *attributes = (std::vector<int> *)attrs;
+	attributes->clear();
+	attributes->push_back(hnd->width);
+	attributes->push_back(hnd->height);
+	attributes->push_back(hnd->stride);
+	attributes->push_back(hnd->format);
+	attributes->push_back(hnd->size);
+	attributes->push_back(hnd->type);
+	return 0;
+}
+
 static int alloc_device_close(struct hw_device_t *device)
 {
 	alloc_device_t *dev = reinterpret_cast<alloc_device_t *>(device);
