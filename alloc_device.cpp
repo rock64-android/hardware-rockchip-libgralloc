@@ -421,11 +421,18 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
 #ifdef SUPPORT_LEGACY_FORMAT
 	        || format == HAL_PIXEL_FORMAT_YCbCr_420_SP || format == HAL_PIXEL_FORMAT_YCbCr_420_P || format == HAL_PIXEL_FORMAT_YCbCr_422_I
 #endif
+		|| format == HAL_PIXEL_FORMAT_YCrCb_NV12 || format == HAL_PIXEL_FORMAT_YCrCb_NV12_10
+		|| format == HAL_PIXEL_FORMAT_YCrCb_NV12_VIDEO || format == HAL_PIXEL_FORMAT_YCbCr_420_888
 	   )
 	{
+		int align = 8;
+		int bpp = 0;
+		int bpr = 0;
+
 		switch (format)
 		{
 			case HAL_PIXEL_FORMAT_YCrCb_420_SP:
+			case HAL_PIXEL_FORMAT_YCbCr_420_888:
 				stride = GRALLOC_ALIGN(w, 16);
 				size = GRALLOC_ALIGN(h, 16) * (stride + GRALLOC_ALIGN(stride / 2, 16));
 				break;
@@ -451,6 +458,19 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
 
 				break;
 #endif
+			case HAL_PIXEL_FORMAT_YCrCb_NV12:
+				bpp = 2;
+				bpr = (w * bpp + (align-1)) & (~(align-1));
+				size = bpr * h;
+				stride = bpr / bpp;
+				break;
+			case HAL_PIXEL_FORMAT_YCrCb_NV12_10:
+				stride = w;
+				size = stride * h * 2;
+				break;
+			case HAL_PIXEL_FORMAT_YCrCb_NV12_VIDEO:
+				ALOGE("unsupport format [0x%x] now", HAL_PIXEL_FORMAT_YCrCb_NV12_VIDEO);
+				break;
 
 			default:
 				return -EINVAL;
