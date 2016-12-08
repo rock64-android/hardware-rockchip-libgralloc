@@ -53,6 +53,7 @@ static int gralloc_device_open(const hw_module_t *module, const char *name, hw_d
 	}
 	else if (!strncmp(name, GRALLOC_HARDWARE_FB0, MALI_GRALLOC_HARDWARE_MAX_STR_LEN))
 	{
+		rockchip_set_version();
 		status = framebuffer_device_open(module, name, device);
 	}
 

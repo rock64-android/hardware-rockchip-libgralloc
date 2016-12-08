@@ -44,6 +44,7 @@
 #include <ion/ion.h>
 #endif
 
+#include "version.h"
 /*
 #define ION_HEAP_SYSTEM_MASK		(1 << ION_HEAP_TYPE_SYSTEM)
 #define ION_HEAP_SYSTEM_CONTIG_MASK	(1 << ION_HEAP_TYPE_SYSTEM_CONTIG)
@@ -109,6 +110,15 @@ int rockchip_log(int check)
 	if (check)
 		log = rockchip_get_int_property("sys.gralloc.log","0");
 	return log;
+}
+
+int rockchip_set_version() {
+	char acVersion[100];
+
+	memset(acVersion, 0, sizeof(acVersion));
+	strcat(acVersion, RK_GRAPHICS_VER);
+	property_set("sys.ggralloc.ver", acVersion);
+	return 0;
 }
 
 int rockchip_alloc_ion_open(private_module_t *m)

@@ -18,6 +18,8 @@
 
 LOCAL_PATH := $(call my-dir)
 
+$(info $(shell $(LOCAL_PATH)/version.sh))
+
 # HAL module implemenation, not prelinked and stored in
 # hw/<OVERLAY_HARDWARE_MODULE_ID>.<ro.product.board>.so
 include $(CLEAR_VARS)
