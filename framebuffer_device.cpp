@@ -298,6 +298,7 @@ int init_frame_buffer_locked(struct private_module_t *module)
 	info.reserved[0] = 0;
 	info.reserved[1] = 0;
 	info.reserved[2] = 0;
+	info.reserved[2] = 1;
 	info.xoffset = 0;
 	info.yoffset = 0;
 	info.activate = FB_ACTIVATE_NOW;
@@ -447,7 +448,7 @@ int init_frame_buffer_locked(struct private_module_t *module)
 		return -errno;
 	}
 
-	memset(vaddr, 0, fbSize);
+	//memset(vaddr, 0, fbSize);
 
 	// Create a "fake" buffer object for the entire frame buffer memory, and store it in the module
 	module->framebuffer = new private_handle_t(private_handle_t::PRIV_FLAGS_FRAMEBUFFER, 0, fbSize, vaddr,

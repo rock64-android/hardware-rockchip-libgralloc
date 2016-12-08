@@ -86,7 +86,7 @@ int rockchip_get_handle_type_by_heap_mask(unsigned int heap_mask)
 	return ret;
 }
 
-int rockchip_gralloc_get_int_property(const char* pcProperty,
+int rockchip_get_int_property(const char* pcProperty,
                                                   const char* default_value)
 {
 	char value[PROPERTY_VALUE_MAX];
@@ -107,7 +107,7 @@ int rockchip_log(int check)
 {
 	static int log = 0;
 	if (check)
-		log = rockchip_gralloc_get_int_property("sys.gralloc.log","0");
+		log = rockchip_get_int_property("sys.gralloc.log","0");
 	return log;
 }
 

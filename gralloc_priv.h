@@ -82,7 +82,7 @@ typedef struct ion_handle *ion_user_handle_t;
  * 8 is big enough for "gpu0" & "fb0" currently
  */
 #define MALI_GRALLOC_HARDWARE_MAX_STR_LEN 8
-#define NUM_FB_BUFFERS 2
+#define NUM_FB_BUFFERS 3
 
 #if GRALLOC_ARM_UMP_MODULE
 #include <ump/ump.h>
