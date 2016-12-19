@@ -675,7 +675,7 @@ static int alloc_device_close(struct hw_device_t *device)
 	if (dev)
 	{
 #if GRALLOC_ARM_DMA_BUF_MODULE
-		private_module_t *m = reinterpret_cast<private_module_t *>(device);
+		private_module_t *m = reinterpret_cast<private_module_t *>(device->module);
 #if 0//arm std
 		if (0 != ion_close(m->ion_client))
 		{
