@@ -39,6 +39,7 @@
 #include "gralloc_helper.h"
 
 #include <hardware/rk_fh.h>
+#include "rockchip_alloc_device.h"
 
 // numbers of buffers for page flipping
 #define NUM_BUFFERS NUM_FB_BUFFERS
@@ -298,7 +299,7 @@ int init_frame_buffer_locked(struct private_module_t *module)
 	info.reserved[0] = 0;
 	info.reserved[1] = 0;
 	info.reserved[2] = 0;
-	info.reserved[2] = 1;
+	info.reserved[3] = 1;
 	info.xoffset = 0;
 	info.yoffset = 0;
 	info.activate = FB_ACTIVATE_NOW;
