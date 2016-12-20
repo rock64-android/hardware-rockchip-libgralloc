@@ -317,6 +317,11 @@ int init_frame_buffer_locked(struct private_module_t *module)
 	info.blue.length    = 5;
 	info.transp.offset  = 0;
 	info.transp.length  = 0;
+
+	info.grayscale      &= 0xff;
+	info.grayscale      |= (info.xres<<8) + (info.yres<<20);
+	info.nonstd &= 0xffffff00;
+	info.nonstd |= HAL_PIXEL_FORMAT_RGB_565;
 #else
 	/*
 	 * Explicitly request 8/8/8
@@ -330,6 +335,11 @@ int init_frame_buffer_locked(struct private_module_t *module)
 	info.blue.length    = 8;
 	info.transp.offset  = 0;
 	info.transp.length  = 0;
+
+	info.grayscale      &= 0xff;
+	info.grayscale      |= (info.xres<<8) + (info.yres<<20);
+	info.nonstd &= 0xffffff00;
+	info.nonstd |= HAL_PIXEL_FORMAT_BGRA_8888;
 #endif
 
 	/*
@@ -424,6 +434,8 @@ int init_frame_buffer_locked(struct private_module_t *module)
 	{
 		return -errno;
 	}
+
+	AINF("finfo.line_length  = %d\n", finfo.line_length);
 
 	if (finfo.smem_len <= 0)
 	{
