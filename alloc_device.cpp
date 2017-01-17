@@ -299,6 +299,7 @@ static int gralloc_alloc_buffer(alloc_device_t *dev, size_t size, int usage, buf
 static int gralloc_alloc_framebuffer_locked(alloc_device_t *dev, size_t size, int usage, buffer_handle_t *pHandle)
 {
 	private_module_t *m = reinterpret_cast<private_module_t *>(dev->common.module);
+	size_t found_index = 0;
 
 	// allocate the framebuffer
 	if (m->framebuffer == NULL)
@@ -335,17 +336,20 @@ static int gralloc_alloc_framebuffer_locked(alloc_device_t *dev, size_t size, in
 	void *vaddr = m->framebuffer->base;
 
 	// find a free slot
-	for (uint32_t i = 0 ; i < numBuffers ; i++)
+	for (uint32_t i = 1 ; i < numBuffers + 1; i++)
 	{
+		i = i % numBuffers;
 		if ((bufferMask & (1LU << i)) == 0)
 		{
 			m->bufferMask |= (1LU << i);
+			found_index = i;
 			break;
 		}
-
-		vaddr = (void *)((uintptr_t)vaddr + bufferSize);
 	}
 
+	vaddr = (void *)((uintptr_t)vaddr + bufferSize * found_index);
+
+	ALOGI("vaddr=%p, fi=%zu, bs=%zu, base=%p", vaddr, found_index, bufferSize, m->framebuffer->base);
 	// The entire framebuffer memory is already mapped, now create a buffer object for parts of this memory
 	private_handle_t *hnd = new private_handle_t(private_handle_t::PRIV_FLAGS_FRAMEBUFFER, usage, size, vaddr,
 	        0, dup(m->framebuffer->fd), (uintptr_t)vaddr - (uintptr_t) m->framebuffer->base);
