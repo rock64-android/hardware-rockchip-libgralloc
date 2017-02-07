@@ -180,3 +180,15 @@ int rockchip_alloc_ion_close(private_module_t *m)
 
 	return ret;
 }
+
+int rockchip_heap_fix_by_platform(unsigned int *heap_mask)
+{
+	unsigned int mask = *heap_mask;
+
+#ifdef TARGET_BOARD_PLATFORM_RK3188
+	mask = ION_HEAP_CARVEOUT_MASK;
+#endif
+	*heap_mask = mask;
+
+	return 0;
+}

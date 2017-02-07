@@ -126,6 +126,8 @@ static int gralloc_alloc_buffer(alloc_device_t *dev, size_t size, int usage, buf
 			heap_mask = ION_HEAP_SYSTEM_MASK;
 		}
 
+		rockchip_heap_fix_by_platform(&heap_mask);
+
 		ret = ion_alloc(m->ion_client, size, 0, heap_mask, 0, &(ion_hnd));
 
 		if (ret != 0)

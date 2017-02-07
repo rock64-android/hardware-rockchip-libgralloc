@@ -25,4 +25,5 @@ int rockchip_log(int check);
 int rockchip_set_version();
 int rockchip_alloc_ion_open(private_module_t *m);
 int rockchip_alloc_ion_close(private_module_t *m);
+int rockchip_heap_fix_by_platform(unsigned int *heap_mask);
 #endif
