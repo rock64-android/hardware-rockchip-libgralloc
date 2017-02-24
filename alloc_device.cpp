@@ -524,7 +524,7 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
 
 #ifndef MALI_600
 
-	if (usage & GRALLOC_USAGE_HW_FB)
+	if ((usage & GRALLOC_USAGE_HW_FB) && !(usage & GRALLOC_USAGE_EXTERNAL_DISP))
 	{
 		err = gralloc_alloc_framebuffer(dev, size, usage, pHandle);
 	}
@@ -541,7 +541,7 @@ static int alloc_device_alloc(alloc_device_t *dev, int w, int h, int format, int
 	}
 
 	/* match the framebuffer format */
-	if (usage & GRALLOC_USAGE_HW_FB)
+	if ((usage & GRALLOC_USAGE_HW_FB) && !(usage & GRALLOC_USAGE_EXTERNAL_DISP))
 	{
 #ifdef GRALLOC_16_BITS
 		format = HAL_PIXEL_FORMAT_RGB_565;

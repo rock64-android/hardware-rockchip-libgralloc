@@ -320,6 +320,9 @@ int init_frame_buffer_locked(struct private_module_t *module)
 
 	info.grayscale      &= 0xff;
 	info.grayscale      |= (info.xres<<8) + (info.yres<<20);
+#ifdef RK_FB_CFG_DONE_FLAG
+	info.grayscale      |= RK_FB_CFG_DONE_FLAG;
+#endif
 	info.nonstd &= 0xffffff00;
 	info.nonstd |= HAL_PIXEL_FORMAT_RGB_565;
 #else
@@ -338,6 +341,9 @@ int init_frame_buffer_locked(struct private_module_t *module)
 
 	info.grayscale      &= 0xff;
 	info.grayscale      |= (info.xres<<8) + (info.yres<<20);
+#ifdef RK_FB_CFG_DONE_FLAG
+	info.grayscale      |= RK_FB_CFG_DONE_FLAG;
+#endif
 	info.nonstd &= 0xffffff00;
 	info.nonstd |= HAL_PIXEL_FORMAT_BGRA_8888;
 #endif
