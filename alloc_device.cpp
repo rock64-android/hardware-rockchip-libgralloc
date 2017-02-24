@@ -180,9 +180,14 @@ static int gralloc_alloc_buffer(alloc_device_t *dev, size_t size, int usage, buf
 
 		if (NULL != hnd)
 		{
+			unsigned long phy_addr = 0;
 			hnd->share_fd = shared_fd;
 			hnd->ion_hnd = ion_hnd;
 			hnd->type = rockchip_get_handle_type_by_heap_mask(heap_mask);
+			if (!hnd->type) {
+				ret = ion_get_phys(m->ion_client, ion_hnd, &phy_addr);
+				hnd->phy_addr = (void*)phy_addr;
+			}
 			*pHandle = hnd;
 			return 0;
 		}
