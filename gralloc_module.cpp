@@ -446,6 +446,88 @@ static int gralloc_unlock(gralloc_module_t const *module, buffer_handle_t handle
 	return 0;
 }
 
+int gralloc_lock_ycbcr(gralloc_module_t const* module,
+		buffer_handle_t handle, int usage,
+		int l, int t, int w, int h,
+		struct android_ycbcr *ycbcr)
+{
+	// this is called when a buffer is being locked for software
+	// access. in thin implementation we only fill ycbcr since
+	// not synchronization with the h/w is needed.
+	// typically this is used to wait for the h/w to finish with
+	// this buffer if relevant. the data cache may need to be
+	// flushed or invalidated depending on the usage bits and the
+	// hardware.
+
+	if (private_handle_t::validate(handle) < 0)
+	{
+		ALOGE("handle valid");
+		return -EINVAL;
+
+	}
+
+	private_handle_t* hnd = (private_handle_t*)handle;
+	if (!hnd->base)
+	{
+		ALOGE("base null");
+		return -EINVAL;
+	}
+	// this is currently only used by camera for yuv420sp
+	// if in future other formats are needed, store to private
+	// handle and change the below code based on private format.
+
+	int ystride;
+	switch (hnd->format) {
+		case HAL_PIXEL_FORMAT_YCrCb_420_SP:
+		case HAL_PIXEL_FORMAT_YCbCr_420_888:
+			ystride = hnd->stride;
+			ycbcr->y  = (void*)hnd->base;
+			ycbcr->cr = (void*)((char*)hnd->base + ystride * hnd->height);
+			ycbcr->cb = (void*)((char*)hnd->base + ystride * hnd->height + 1);
+			ycbcr->ystride = ystride;
+			ycbcr->cstride = ystride;
+			ycbcr->chroma_step = 2;
+			memset(ycbcr->reserved, 0, sizeof(ycbcr->reserved));
+			break;
+		case HAL_PIXEL_FORMAT_YCrCb_NV12:
+			ystride = hnd->stride;
+			ycbcr->y  = (void*)hnd->base;
+			ycbcr->cr = (void*)((char*)hnd->base + ystride *  hnd->height + 1);
+			ycbcr->cb = (void*)((char*)hnd->base + ystride *  hnd->height);
+			ycbcr->ystride = ystride;
+			ycbcr->cstride = ystride;
+			ycbcr->chroma_step = 2;
+			memset(ycbcr->reserved, 0, sizeof(ycbcr->reserved));
+			break;
+		case HAL_PIXEL_FORMAT_YV12:
+			ystride = hnd->stride;
+			ycbcr->ystride = ystride;
+			ycbcr->cstride = (ystride/2 + 15) & ~15;
+			ycbcr->y  = (void*)hnd->base;
+			ycbcr->cr = (void*)((char*)hnd->base + ystride * hnd->height);
+			ycbcr->cb = (void*)((char*)hnd->base + ystride * hnd->height + ycbcr->cstride * hnd->height/2);
+			ycbcr->chroma_step = 1;
+			memset(ycbcr->reserved, 0, sizeof(ycbcr->reserved));
+			break;
+		case HAL_PIXEL_FORMAT_YCbCr_422_SP:
+			ystride = hnd->stride;
+			ycbcr->y  = (void*)hnd->base;
+			ycbcr->cb = (void*)((char*)hnd->base + ystride * hnd->height);
+			ycbcr->cr = (void*)((char*)hnd->base + ystride * hnd->height + 1);
+			ycbcr->ystride = ystride;
+			ycbcr->cstride = ystride;
+			ycbcr->chroma_step = 2;
+			memset(ycbcr->reserved, 0, sizeof(ycbcr->reserved));
+			break;
+		default:
+			ALOGE("%s: Invalid format passed: 0x%x", __FUNCTION__, hnd->format);
+			return -EINVAL;
+	}
+
+	return 0;
+}
+
+
 // There is one global instance of the module
 
 static struct hw_module_methods_t gralloc_module_methods =
@@ -471,6 +553,7 @@ private_module_t::private_module_t()
 	base.unregisterBuffer = gralloc_unregister_buffer;
 	base.lock = gralloc_lock;
 	base.unlock = gralloc_unlock;
+	base.lock_ycbcr = gralloc_lock_ycbcr;
 	base.perform = gralloc_perform;
 	INIT_ZERO(base.reserved_proc);
 
