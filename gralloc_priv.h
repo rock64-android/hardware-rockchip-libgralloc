@@ -90,11 +90,6 @@ typedef struct ion_handle *ion_user_handle_t;
 
 #define MALI_IGNORE(x) (void)x
 
-enum {
-       GRALLOC_MODULE_PERFORM_GET_HADNLE_PRIME_FD        = 0x08000001,
-       GRALLOC_MODULE_PERFORM_GET_HADNLE_ATTRIBUTES      = 0x08000002,
-};
-
 typedef enum
 {
 	MALI_YUV_NO_INFO,
