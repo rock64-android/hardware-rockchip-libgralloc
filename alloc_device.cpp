@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+#define ENABLE_DEBUG_LOG
+#include <log/custom_log.h>
+
 #include <string.h>
 #include <errno.h>
 #include <pthread.h>
@@ -48,6 +51,10 @@
 
 #define GRALLOC_ALIGN( value, base ) (((value) + ((base) - 1)) & ~((base) - 1))
 
+static bool has_usage_flags(unsigned int usage, unsigned int flags)
+{
+	return (0 != (usage & flags) );
+}
 
 #if GRALLOC_SIMULATE_FAILURES
 #include <cutils/properties.h>
@@ -109,6 +116,7 @@ static int gralloc_alloc_buffer(alloc_device_t *dev, size_t size, int usage, buf
 		int shared_fd;
 		int ret;
 		unsigned int heap_mask;
+		unsigned int flags = 0; // flags for ion_alloc.
 		int lock_state = 0;
 		int map_mask = 0;
 
@@ -128,7 +136,14 @@ static int gralloc_alloc_buffer(alloc_device_t *dev, size_t size, int usage, buf
 
 		rockchip_heap_fix_by_platform(&heap_mask);
 
-		ret = ion_alloc(m->ion_client, size, 0, heap_mask, 0, &(ion_hnd));
+		if ( has_usage_flags(usage, GRALLOC_USAGE_SW_WRITE_OFTEN)
+				|| has_usage_flags(usage, GRALLOC_USAGE_SW_READ_OFTEN) )
+		{
+			D("to ask for cachable buffer for CPU access, usage : 0x%x", usage);
+			flags = ION_FLAG_CACHED;
+		}
+
+		ret = ion_alloc(m->ion_client, size, 0, heap_mask, flags, &(ion_hnd));
 
 		if (ret != 0)
 		{
