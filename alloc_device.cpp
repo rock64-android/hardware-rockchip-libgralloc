@@ -136,13 +136,14 @@ static int gralloc_alloc_buffer(alloc_device_t *dev, size_t size, int usage, buf
 
 		rockchip_heap_fix_by_platform(&heap_mask);
 
+#ifndef TARGET_BOARD_PLATFORM_RK3188
 		if ( has_usage_flags(usage, GRALLOC_USAGE_SW_WRITE_OFTEN)
 				|| has_usage_flags(usage, GRALLOC_USAGE_SW_READ_OFTEN) )
 		{
 			D("to ask for cachable buffer for CPU access, usage : 0x%x", usage);
 			flags = ION_FLAG_CACHED;
 		}
-
+#endif
 		ret = ion_alloc(m->ion_client, size, 0, heap_mask, flags, &(ion_hnd));
 
 		if (ret != 0)
