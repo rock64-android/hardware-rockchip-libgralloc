@@ -338,7 +338,7 @@ static int gralloc_alloc_framebuffer_locked(alloc_device_t *dev, size_t size, in
 
 	const uint32_t bufferMask = m->bufferMask;
 	const uint32_t numBuffers = m->numBuffers;
-	const size_t bufferSize = m->finfo.line_length * m->info.yres;
+	const size_t bufferSize = size;//m->finfo.line_length * m->info.yres;
 
 	if (numBuffers == 1)
 	{
@@ -372,7 +372,7 @@ static int gralloc_alloc_framebuffer_locked(alloc_device_t *dev, size_t size, in
 
 	vaddr = (void *)((uintptr_t)vaddr + bufferSize * found_index);
 
-	ALOGI("vaddr=%p, fi=%zu, bs=%zu, base=%p", vaddr, found_index, bufferSize, m->framebuffer->base);
+	ALOGV("vaddr=%p, fi=%zu, bs=%zu, base=%p", vaddr, found_index, bufferSize, m->framebuffer->base);
 	// The entire framebuffer memory is already mapped, now create a buffer object for parts of this memory
 	private_handle_t *hnd = new private_handle_t(private_handle_t::PRIV_FLAGS_FRAMEBUFFER, usage, size, vaddr,
 	        0, dup(m->framebuffer->fd), (uintptr_t)vaddr - (uintptr_t) m->framebuffer->base);
