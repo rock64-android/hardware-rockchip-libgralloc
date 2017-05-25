@@ -51,11 +51,6 @@
 
 #define GRALLOC_ALIGN( value, base ) (((value) + ((base) - 1)) & ~((base) - 1))
 
-static bool has_usage_flags(unsigned int usage, unsigned int flags)
-{
-	return (0 != (usage & flags) );
-}
-
 #if GRALLOC_SIMULATE_FAILURES
 #include <cutils/properties.h>
 
@@ -137,10 +132,8 @@ static int gralloc_alloc_buffer(alloc_device_t *dev, size_t size, int usage, buf
 		rockchip_heap_fix_by_platform(&heap_mask);
 
 #ifndef TARGET_BOARD_PLATFORM_RK3188
-		if ( has_usage_flags(usage, GRALLOC_USAGE_SW_WRITE_OFTEN)
-				|| has_usage_flags(usage, GRALLOC_USAGE_SW_READ_OFTEN) )
+		if ((usage & GRALLOC_USAGE_SW_READ_MASK) == GRALLOC_USAGE_SW_READ_OFTEN)
 		{
-			D("to ask for cachable buffer for CPU access, usage : 0x%x", usage);
 			flags = ION_FLAG_CACHED | ION_FLAG_CACHED_NEEDS_SYNC;
 		}
 #endif
