@@ -286,6 +286,7 @@ int init_frame_buffer_locked(struct private_module_t *module)
 
 	if (ioctl(fd, FBIOGET_FSCREENINFO, &finfo) == -1)
 	{
+		close(fd);
 		return -errno;
 	}
 
@@ -293,6 +294,7 @@ int init_frame_buffer_locked(struct private_module_t *module)
 
 	if (ioctl(fd, FBIOGET_VSCREENINFO, &info) == -1)
 	{
+		close(fd);
 		return -errno;
 	}
 
@@ -372,6 +374,7 @@ int init_frame_buffer_locked(struct private_module_t *module)
 
 	if (ioctl(fd, FBIOGET_VSCREENINFO, &info) == -1)
 	{
+		close(fd);
 		return -errno;
 	}
 
@@ -438,6 +441,7 @@ int init_frame_buffer_locked(struct private_module_t *module)
 
 	if (ioctl(fd, FBIOGET_FSCREENINFO, &finfo) == -1)
 	{
+		close(fd);
 		return -errno;
 	}
 
@@ -445,6 +449,7 @@ int init_frame_buffer_locked(struct private_module_t *module)
 
 	if (finfo.smem_len <= 0)
 	{
+		close(fd);
 		return -errno;
 	}
 
@@ -463,6 +468,7 @@ int init_frame_buffer_locked(struct private_module_t *module)
 
 	if (vaddr == MAP_FAILED)
 	{
+		close(fd);
 		AERR("Error mapping the framebuffer (%s)", strerror(errno));
 		return -errno;
 	}
